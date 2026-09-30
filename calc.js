@@ -141,9 +141,9 @@
         cash: tP, value: PE, cabin: 'Premium Economy (confirmed)', available: 'unknown' });
       if (B) add({ key: 'bizReward', name: 'Business Classic Reward', points: pts.business * T * S,
         cash: tP, value: VB, cabin: 'Business (confirmed)', available: avail(bizSeats) });
-      if (B && E && S === 2) add({ key: 'mixedReward', name: 'Business one way + Economy other way (rewards)',
+      if (B && E && S === 2) add({ key: 'mixedReward', name: 'Business reward one way, Economy reward the other',
         points: (pts.business + pts.economy) * T, cash: (tP + tE) / 2, value: (VB + E) / 2,
-        cabin: 'Business ×1, Economy ×1 (confirmed)',
+        cabin: 'Business one way, Economy the other (confirmed)',
         available: avail(bizSeats === null || econSeats === null ? null : Math.min(bizSeats, econSeats)) });
     }
 
@@ -153,7 +153,7 @@
       const from = cls === 'flexEcon' ? 'flexEcon' : 'econ';
       const U = upgradePts(zone, from) * T * S;
       const vFail = E || Eu;
-      add({ key: 'econUpgrade', name: 'Paid Economy + upgrade to Business', points: U, expPoints: P * U,
+      add({ key: 'econUpgrade', name: 'Paid Economy, then upgrade with points', points: U, expPoints: P * U,
         cash: Eu, value: P * VB + (1 - P) * vFail, cppOverride: (VB - Eu) / U * 100,
         cabin: `Business if it clears (${Math.round(P * 100)}%), else Economy`,
         eligible: cls !== 'excluded', fareClass: cls, prob: P, upgradeFrom: from, perSector: U / T / S });
@@ -162,7 +162,7 @@
     if (B && PE && isFinite(zone)) {
       const from = ['discPE', 'pe', 'flexPE'].includes(j.peFareType) ? j.peFareType : 'pe';
       const U = upgradePts(zone, from) * T * S;
-      add({ key: 'peUpgrade', name: 'Paid Premium Economy + upgrade to Business', points: U, expPoints: P * U,
+      add({ key: 'peUpgrade', name: 'Paid Premium Economy, then upgrade with points', points: U, expPoints: P * U,
         cash: PE, value: P * VB + (1 - P) * PE, cppOverride: (VB - PE) / U * 100,
         cabin: `Business if it clears (${Math.round(P * 100)}%), else Premium Economy`,
         prob: P, upgradeFrom: from, perSector: U / T / S });
@@ -207,9 +207,9 @@
     ['VIC summer holidays', '2027-12-18', '2028-01-27'],
   ];
   const PREFERRED = [
-    ['12 Apr – 25 Jun', '2027-04-12', '2027-06-25'],
-    ['12 Jul – 17 Sep', '2027-07-12', '2027-09-17'],
-    ['4 Oct – 17 Dec', '2027-10-04', '2027-12-17'],
+    ['12 Apr to 25 Jun', '2027-04-12', '2027-06-25'],
+    ['12 Jul to 17 Sep', '2027-07-12', '2027-09-17'],
+    ['4 Oct to 17 Dec', '2027-10-04', '2027-12-17'],
   ];
   const JP_BUSY = [
     ['Golden Week', '2027-04-29', '2027-05-05'],
@@ -221,8 +221,8 @@
   const JP_SEASONS = [
     ['Cherry blossom (Tokyo/Kyoto, approx.)', '03-24', '04-10', 'good'],
     ['Pleasant spring', '04-11', '05-31', 'good'],
-    ['Rainy season — tsuyu (not Hokkaido)', '06-05', '07-20', 'warn'],
-    ['Hot & humid summer', '07-15', '09-10', 'warn'],
+    ['Rainy season, tsuyu (not Hokkaido)', '06-05', '07-20', 'warn'],
+    ['Hot, humid summer', '07-15', '09-10', 'warn'],
     ['Peak typhoon season', '08-15', '09-30', 'warn'],
     ['Pleasant autumn', '10-10', '11-14', 'good'],
     ['Autumn leaves (Tokyo/Kyoto, approx.)', '11-15', '12-05', 'good'],

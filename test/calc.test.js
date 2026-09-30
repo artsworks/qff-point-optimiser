@@ -107,7 +107,7 @@ test('over-balance and unavailable options are never "best"', () => {
 test('date checks: VIC holidays, Golden Week, preferred window, booking opens', () => {
   const a = Q.checkDates('2027-05-10', '2027-05-24');
   assert.deepEqual(a.vic, []); assert.deepEqual(a.jp, []);
-  assert.equal(a.preferred, '12 Apr – 25 Jun');
+  assert.equal(a.preferred, '12 Apr to 25 Jun');
   assert.equal(a.outboundOpens, '2026-05-22');
   const b = Q.checkDates('2027-04-05', '2027-05-01');
   assert.deepEqual(b.vic, ['VIC autumn holidays']);

@@ -1,75 +1,56 @@
-# QFF Points Optimiser
+# QFF points optimiser
 
-A zero-dependency static tool (GitHub Pages) for working out the best value per
-Qantas Frequent Flyer point for a Melbourne → Japan trip — built around a
-400,000-point balance and the post-5 Aug 2025 Classic Reward table
-(zones 1–10; MEL → Japan is Zone 6, 4,801–5,800 miles).
+A static page, hosted on GitHub Pages, that compares ways to spend Qantas Frequent Flyer points on a trip. It was built for a Melbourne to Japan trip for two people with 400,000 points. It uses the Classic Reward tables for bookings made from 5 August 2025, zones 1 to 10. Direct Melbourne to Japan flights are Zone 6 (4,801 to 5,800 miles).
 
-**Live site:** https://artsworks.github.io/qff-points-optimizer/
+Live site: https://artsworks.github.io/qff-points-optimizer/
 
 ## What it does
 
-Add one **journey** per real itinerary you find (dates + route + same-flight
-cash fares + reward-seat availability from the
-[Qantas Flight Reward finder](https://flightrewardfinder.qantas.com/)). For each
-journey it:
+You add one journey for each itinerary you find. A journey has dates, a route, cash fares for the same flights, and seat availability from the [Qantas Flight Reward finder](https://flightrewardfinder.qantas.com/). For each journey the page:
 
-- **Works out the zone from the route** (`MEL-NRT`, `MEL-SYD-HND`,
-  `MEL-NRT-FUK`…) via great-circle miles, uses the Qantas or partner table for
-  zones 1–10, flags routes near a zone edge, and lets you override the zone.
-- **Compares every option**: Economy / PE / Business Classic Rewards, Business
-  one way + Economy the other, paid Economy or PE + Classic Upgrade, and cash.
-- **Gives a plain-English verdict**: best option, runner-up, and for the
-  upgrade route the price you're effectively paying per point saved and the
-  break-even upgrade odds.
-- **Checks fare class** (G K L M S V / B H Y upgradeable; others not) and seat
-  availability, and marks options that exceed your balance.
-- **Checks dates** against 2027 VIC school holidays, Japanese busy periods and
-  seasons, and shows when rewards open (~353 days out).
+- Estimates the miles from the route (for example `MEL-NRT`, `MEL-SYD-HND` or `MEL-NRT-FUK`) and picks the zone. It warns when a route is close to a zone limit, and you can set the zone yourself.
+- Uses the Qantas table, or the more expensive partner table for airlines such as Japan Airlines.
+- Compares Economy, Premium Economy and Business Classic Rewards, Business one way with Economy the other, paid Economy or Premium Economy with a points upgrade, and cash fares.
+- Names the best option and the next best. For the upgrade route it shows what you pay in cash for each point you save, and the upgrade chance at which it beats a Business reward.
+- Checks the Economy fare class. Classes G, K, L, M, S, V, B, H and Y can be upgraded, and other classes can't. It also marks options that need more points than you have.
+- Checks the dates against 2027 Victorian school holidays and busy periods in Japan, and shows when reward seats open, about 353 days before departure.
 
-A **ranking table** sorts all journeys by *Gain* (trip value − cash − points ×
-your ¢/pt). Tailor with balance, travellers, status, what a point is worth to
-you, and how much Business is worth to you. Share link (state in URL), CSV
-export, `localStorage` persistence.
+A ranking table sorts the journeys by gain. Gain is the value of the trip, minus the cash you pay, minus the points you use at your value per point. You can set the balance, travellers, status, the value of a point you keep, and how much Business is worth to you. The page saves your data in `localStorage`, and you can share it as a link or export it as CSV.
 
-All maths is in `calc.js` (pure, UMD) and tested:
+The calculations are in `calc.js`, which has no DOM code. Run the tests with:
 
 ```sh
 node --test test/calc.test.js
 ```
 
-## Key numbers (Zone 6, per person, return)
+## Key numbers (Zone 6, per person)
 
-| Cabin | Pts pp | 2 pax return |
+| Cabin | Return, per person | Return, 2 people |
 |---|---:|---:|
 | Economy | 72,400 | 144,800 |
 | Premium Economy | 147,600 | 295,200 |
-| Business | 196,800 | **393,600** |
+| Business | 196,800 | 393,600 |
 | First | 295,400 | 590,800 |
 
-Economy→Business upgrade: **78,500** pp/sector paid · 43,100 flexible ·
-83,600 from an Economy Reward seat → **314,000 pts** for 2 pax return.
-Saving vs Business Reward: **79,600 pts**, at the cost of upgrade uncertainty.
+An upgrade from paid Economy to Business costs 78,500 points per person per flight, or 43,100 on a flexible fare. For 2 people on a return trip that is 314,000 points, which is 79,600 fewer than a Business reward. The upgrade may not clear.
 
 ## Run locally
 
-No build step — open `index.html`, or serve it:
+There is no build step. Open `index.html`, or serve the folder:
 
 ```sh
 python3 -m http.server 8000
 ```
 
-## Deploy / GitHub Pages
+## GitHub Pages
 
-The site is served from the repo root of `main` with `.nojekyll`:
-
-- Repo → **Settings → Pages → Source: Deploy from a branch → `main` / `/ (root)`**
+The site is served from the root of `main`. The `.nojekyll` file turns off Jekyll. In the repo, open Settings, then Pages, and set the source to `main` and `/ (root)`.
 
 ## Sources
 
 - [Classic Flight Reward tables](https://www.qantas.com/en-au/frequent-flyer/use-points/classic-flight-rewards/tables)
 - [Classic Upgrade Reward tables](https://www.qantas.com/en-au/frequent-flyer/use-points/classic-upgrade-rewards/tables)
 - [Upgrade eligibility](https://www.qantas.com/en-au/manage-booking/upgrade)
-- [VIC school term dates](https://www.vic.gov.au/school-term-dates-and-holidays-victoria)
+- [Victorian school term dates](https://www.vic.gov.au/school-term-dates-and-holidays-victoria)
 
-Not affiliated with Qantas. All data stays in your browser.
+Not affiliated with Qantas. Your data stays in your browser.

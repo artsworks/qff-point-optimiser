@@ -16,7 +16,7 @@ const newJourney = (over = {}) => ({
 const DEFAULT_STATE = () => ({
   setup: { balance: 400000, travellers: 2, status: 'bronze', futureCpp: 1, bizWeight: 100 },
   journeys: [newJourney({
-    label: 'Example — mid-May 2027 (edit me)', depart: '2027-05-10', ret: '2027-05-24',
+    label: 'Example, mid-May 2027 (edit me)', depart: '2027-05-10', ret: '2027-05-24',
     econCash: 2400, bizCash: 10000, taxEcon: 500, taxPremium: 700,
   })],
 });
@@ -46,9 +46,9 @@ function decodeShare(hash) {
 // ── Formatting ──
 const $ = (sel, el = document) => el.querySelector(sel);
 const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const pts = (n) => isFinite(n) ? Math.round(n).toLocaleString('en-AU') : '—';
-const aud = (n) => isFinite(n) ? (n < 0 ? '−$' : '$') + Math.abs(Math.round(n)).toLocaleString('en-AU') : '—';
-const cpp = (c) => isFinite(c) ? c.toFixed(2) + '¢' : '—';
+const pts = (n) => isFinite(n) ? Math.round(n).toLocaleString('en-AU') : 'n/a';
+const aud = (n) => isFinite(n) ? (n < 0 ? '−$' : '$') + Math.abs(Math.round(n)).toLocaleString('en-AU') : 'n/a';
+const cpp = (c) => isFinite(c) ? c.toFixed(2) + '¢' : 'n/a';
 const pct = (p) => Math.round(p * 100) + '%';
 const cppTone = (c) => !isFinite(c) ? '' : c >= 1.5 ? 'good' : c >= 1 ? 'warn' : 'bad';
 const chip = (text, tone = '') => `<span class="chip ${tone}">${text}</span>`;
@@ -65,9 +65,9 @@ function cardHtml(j) {
   return `
   <article class="journey" data-id="${j.id}">
     <div class="j-head">
-      <input class="j-title" data-k="label" value="${esc(j.label)}" placeholder="Journey name, e.g. 'Mid-May Tokyo'">
+      <input class="j-title" data-k="label" value="${esc(j.label)}" placeholder="Journey name, for example Mid-May Tokyo">
       <div class="j-actions">
-        <a class="btn small" href="${FINDER_URL}" target="_blank" rel="noopener">Check reward seats ↗</a>
+        <a class="btn small" href="${FINDER_URL}" target="_blank" rel="noopener">Check reward seats</a>
         <button type="button" class="small" data-act="dup">Duplicate</button>
         <button type="button" class="small danger" data-act="del">Remove</button>
       </div>
@@ -76,35 +76,35 @@ function cardHtml(j) {
     <details class="j-inputs" ${j.bizCash || j.econCash ? '' : 'open'}>
       <summary>Edit details</summary>
       <fieldset><legend>Trip</legend><div class="grid inputs">
-        <label>Route (one way) <span class="hint">airport codes, e.g. MEL-NRT or MEL-SYD-HND</span>${inp('route', 'text')}</label>
-        <label>Airline${sel('airline', [['qantas', 'Qantas / Jetstar / AA'], ['partner', 'Partner (e.g. Japan Airlines)']])}</label>
+        <label>Route (one way) <span class="hint">airport codes, for example MEL-NRT or MEL-SYD-HND</span>${inp('route', 'text')}</label>
+        <label>Airline${sel('airline', [['qantas', 'Qantas, Jetstar or American Airlines'], ['partner', 'Partner airline, such as Japan Airlines']])}</label>
         <label>Zone${sel('zone', zoneOpts)}</label>
         <label>Trip type${sel('oneWay', [['false', 'Return'], ['true', 'One way']])}</label>
         <label>Depart${inp('depart', 'date')}</label>
         <label>Return${inp('ret', 'date')}</label>
       </div></fieldset>
-      <fieldset><legend>Cash fares — total for all travellers, whole trip</legend><div class="grid inputs">
-        <label>Economy (cheapest) $${inp('econCash', 'number', 'min="0" step="50"')}</label>
+      <fieldset><legend>Cash fares for all travellers, whole trip</legend><div class="grid inputs">
+        <label>Cheapest Economy $${inp('econCash', 'number', 'min="0" step="50"')}</label>
         <label>Business $${inp('bizCash', 'number', 'min="0" step="50"')}</label>
         <label>Premium Economy $ <span class="hint">optional</span>${inp('peCash', 'number', 'min="0" step="50"')}</label>
-        <label>Upgradeable Economy $ <span class="hint">if dearer than cheapest</span>${inp('upgEconCash', 'number', 'min="0" step="50" placeholder="same as cheapest"')}</label>
-        <label>Economy fare class <span class="hint">letter shown at booking</span>${inp('econClass', 'text', 'maxlength="1" placeholder="e.g. L"')}</label>
+        <label>Upgradeable Economy $ <span class="hint">if it costs more than the cheapest</span>${inp('upgEconCash', 'number', 'min="0" step="50" placeholder="same as cheapest"')}</label>
+        <label>Economy fare class <span class="hint">letter shown at booking</span>${inp('econClass', 'text', 'maxlength="1" placeholder="for example L"')}</label>
         <label>Premium Economy fare type${sel('peFareType', [['discPE', 'Discount PE'], ['pe', 'Premium Economy'], ['flexPE', 'Flexible PE']])}</label>
       </div></fieldset>
       <fieldset><legend>From the Flight Reward finder</legend><div class="grid inputs">
         <label>Business reward seats${sel('bizSeats', seatOpts)}</label>
         <label>Economy reward seats${sel('econSeats', seatOpts)}</label>
-        <label>Taxes — Economy reward $ <span class="hint">total</span>${inp('taxEcon', 'number', 'min="0" step="10"')}</label>
-        <label>Taxes — Business/PE reward $ <span class="hint">total</span>${inp('taxPremium', 'number', 'min="0" step="10"')}</label>
+        <label>Taxes on Economy reward $ <span class="hint">total</span>${inp('taxEcon', 'number', 'min="0" step="10"')}</label>
+        <label>Taxes on Business or PE reward $ <span class="hint">total</span>${inp('taxPremium', 'number', 'min="0" step="10"')}</label>
         <label class="wide">Chance the upgrade clears for everyone, both ways
           <div class="sliderrow"><input data-k="prob" type="range" min="0" max="100" step="5" value="${esc(j.prob)}"><output class="o-prob">${esc(j.prob)}%</output></div>
-          <span class="hint">Qantas doesn't publish odds — try a few values and watch the verdict.</span>
+          <span class="hint">Qantas doesn't publish odds. Try a few values and see if the verdict changes.</span>
         </label>
       </div></fieldset>
     </details>
     <div class="j-flags"></div>
     <div class="tablewrap"><table class="j-table">
-      <thead><tr><th>Option</th><th class="num">Points</th><th class="num">Cash</th><th>You fly</th><th class="num">¢/pt</th><th class="num">Gain</th><th></th></tr></thead>
+      <thead><tr><th>Option</th><th class="num">Points</th><th class="num">Cash</th><th>You fly</th><th class="num">Cents per point</th><th class="num">Gain</th><th></th></tr></thead>
       <tbody></tbody>
     </table></div>
   </article>`;
@@ -119,16 +119,16 @@ function verdictHtml(j, r) {
   const T = r.T;
   if (!r.strategies.length) return `<p class="hint">Enter at least the Economy and Business cash fares to see a verdict.</p>`;
   const b = r.best;
-  if (!b) return `<p>${chip('No workable option', 'bad')} Nothing fits your balance with the seats/fare class entered.</p>`;
+  if (!b) return `<p>${chip('No workable option', 'bad')} No option fits your balance with the seats and fare class you entered.</p>`;
   const lines = [];
-  lines.push(`<p class="big"><b>Best: ${b.name}</b> — ${b.points ? pts(b.points) + ' pts + ' : ''}${aud(b.cash)} cash${b.points ? ` · ${cpp(b.cpp)}/pt` : ''} · gain ${aud(b.gain)}</p>`);
+  lines.push(`<p class="big"><b>Best option is ${b.name}.</b> It costs ${b.points ? pts(b.points) + ' points and ' : ''}${aud(b.cash)} cash${b.points ? `, gets ${cpp(b.cpp)} per point` : ''}, and gains you ${aud(b.gain)}.</p>`);
   const runner = r.ranked[1];
-  if (runner) lines.push(`<p>Next best: ${runner.name} (gain ${aud(runner.gain)}, ${aud(b.gain - runner.gain)} less).</p>`);
-  if (b.available === 'unknown') lines.push(`<p>${chip('Check seats', 'warn')} Confirm ${T} seats on the <a href="${FINDER_URL}" target="_blank" rel="noopener">Flight Reward finder</a> before relying on this.</p>`);
+  if (runner) lines.push(`<p>Next best is ${runner.name}, which gains ${aud(runner.gain)} (${aud(b.gain - runner.gain)} less).</p>`);
+  if (b.available === 'unknown') lines.push(`<p>${chip('Check seats', 'warn')} Confirm there are ${T} seats on the <a href="${FINDER_URL}" target="_blank" rel="noopener">Flight Reward finder</a> before you rely on this.</p>`);
 
   const c = r.compare, upg = r.strategies.find((s) => s.key === 'econUpgrade');
   if (c && upg && upg.eligible !== false) {
-    lines.push(`<p>Upgrade route vs Business Reward: saves <b>${pts(c.savedPts)} pts</b> but costs <b>${aud(c.extraCash)} more cash</b> — like buying points at <b>${cpp(c.impliedCpp)}</b> each (you value them at ${f}¢). ${breakevenText(c)}</p>`);
+    lines.push(`<p>Compared with the Business Classic Reward, the upgrade route uses ${pts(c.savedPts)} fewer points and costs ${aud(c.extraCash)} more cash. That is the same as buying points at ${cpp(c.impliedCpp)} each, and you value them at ${f}¢. ${breakevenText(c)}</p>`);
   }
   return lines.join('');
 }
@@ -137,38 +137,38 @@ function breakevenText(c) {
   if (!isFinite(p)) return '';
   const winsAt = (P) => c.upgradeBetterAbove ? P > p : P < p;
   const w0 = winsAt(0), w1 = winsAt(1);
-  if (w0 && w1) return 'It beats the Business Reward at any odds.';
-  if (!w0 && !w1) return 'It can\'t beat the Business Reward, even if the upgrade is certain to clear.';
-  if (w1) return `It only beats the Business Reward if the upgrade clears with better than <b>${pct(p)}</b> odds.`;
-  return `It only wins at low odds (below ${pct(p)}) — i.e. keeping your points and flying Economy is what's winning.`;
+  if (w0 && w1) return 'It beats the Business Classic Reward at any odds.';
+  if (!w0 && !w1) return 'It can\'t beat the Business Classic Reward, even if the upgrade is certain to clear.';
+  if (w1) return `It beats the Business Classic Reward only if the chance of the upgrade clearing is above ${pct(p)}.`;
+  return `It wins only when the chance is below ${pct(p)}, because the better result is flying Economy and keeping your points.`;
 }
 
 function flagsHtml(j, r) {
   const out = [];
-  if (r.unknownAirports.length) out.push(chip(`Unknown airport ${r.unknownAirports.join(', ')} — set the zone manually`, 'bad'));
-  if (isFinite(r.miles)) out.push(chip(`${r.codes.join('→')} ≈ ${pts(r.miles)} mi · Zone ${r.zone}${j.zone ? ' (manual)' : ''}`));
-  else if (isFinite(r.zone)) out.push(chip(`Zone ${r.zone} (manual)`));
-  if (r.nearBoundary && !j.zone) out.push(chip('Near a zone edge — check points on Qantas', 'warn'));
+  if (r.unknownAirports.length) out.push(chip(`Unknown airport ${r.unknownAirports.join(', ')}. Set the zone manually.`, 'bad'));
+  if (isFinite(r.miles)) out.push(chip(`${r.codes.join('-')} is about ${pts(r.miles)} miles, Zone ${r.zone}${j.zone ? ' (set manually)' : ''}`));
+  else if (isFinite(r.zone)) out.push(chip(`Zone ${r.zone} (set manually)`));
+  if (r.nearBoundary && !j.zone) out.push(chip('Close to a zone limit. Check the points price on Qantas.', 'warn'));
   if (j.econClass || r.strategies.some((s) => s.key === 'econUpgrade')) {
     if (r.fareClass === 'excluded') out.push(chip(`Class ${esc(j.econClass.toUpperCase())} can't be upgraded`, 'bad'));
     else if (r.fareClass === 'unknown') out.push(chip('Enter the Economy fare class to confirm upgrade eligibility', 'warn'));
-    else out.push(chip(`Class ${esc(j.econClass.toUpperCase())} upgradeable${r.fareClass === 'flexEcon' ? ' (flexible — 43,100/flight)' : ''}`, 'good'));
+    else out.push(chip(`Class ${esc(j.econClass.toUpperCase())} upgradeable${r.fareClass === 'flexEcon' ? ' (flexible fare, 43,100 per person per flight)' : ''}`, 'good'));
   }
   const d = Q.checkDates(j.depart, String(j.oneWay) === 'true' ? '' : j.ret);
   if (d) {
-    out.push(chip(`${fmtDate(j.depart)}${j.ret && String(j.oneWay) !== 'true' ? ' – ' + fmtDate(j.ret) + ` · ${d.nights} nights` : ''}`));
-    d.vic.forEach((h) => out.push(chip(`Clashes: ${h}`, 'bad')));
-    d.jp.forEach((h) => out.push(chip(`Japan busy: ${h}`, 'warn')));
-    if (d.preferred) out.push(chip(`In preferred window ${d.preferred}`, 'good'));
+    out.push(chip(`${fmtDate(j.depart)}${j.ret && String(j.oneWay) !== 'true' ? ' to ' + fmtDate(j.ret) + `, ${d.nights} nights` : ''}`));
+    d.vic.forEach((h) => out.push(chip(`Clashes with ${h}`, 'bad')));
+    d.jp.forEach((h) => out.push(chip(`Busy in Japan (${h})`, 'warn')));
+    if (d.preferred) out.push(chip(`Inside the ${d.preferred} window`, 'good'));
     else if (!d.vic.length) out.push(chip('Outside the preferred windows', 'warn'));
     d.seasons.forEach(([s, tone]) => out.push(chip(s, tone === 'info' ? '' : tone)));
     if (!d.covered) out.push(chip('Holiday data only covers 2027', 'warn'));
     const today = new Date().toISOString().slice(0, 10);
-    const opens = (iso, what) => iso <= today ? `${what} bookable now` : `${what} opens ~${fmtDate(iso)}`;
-    out.push(chip(opens(d.outboundOpens, 'Outbound') + (d.returnOpens ? ' · ' + opens(d.returnOpens, 'return') : '')));
+    const opens = (iso, what) => iso <= today ? `${what} bookable now` : `${what} opens about ${fmtDate(iso)}`;
+    out.push(chip(opens(d.outboundOpens, 'Outbound') + (d.returnOpens ? ', ' + opens(d.returnOpens, 'return') : '')));
   }
   const status = state.setup.status || 'bronze';
-  if (r.strategies.some((s) => s.key.endsWith('Upgrade'))) out.push(chip(`Upgrades decided ≤${STATUS_WINDOW[status]} before departure at your status`));
+  if (r.strategies.some((s) => s.key.endsWith('Upgrade'))) out.push(chip(`At your status, Qantas decides upgrades up to ${STATUS_WINDOW[status]} before departure`));
   return out.join(' ');
 }
 
@@ -178,16 +178,16 @@ function tableHtml(r) {
     if (s === r.best) tags.push(chip('best', 'good'));
     if (!s.fits) tags.push(chip('over balance', 'bad'));
     if (s.available === 'no') tags.push(chip('not enough seats', 'bad'));
-    if (s.available === 'unknown' && s.points) tags.push(chip('seats?', 'warn'));
+    if (s.available === 'unknown' && s.points) tags.push(chip('check seats', 'warn'));
     if (s.eligible === false) tags.push(chip('fare not eligible', 'bad'));
     if (s.key === 'peUpgrade') tags.push(chip('needs PE on the plane', 'warn'));
     const upg = s.key.endsWith('Upgrade');
     return `<tr class="${s === r.best ? 'best' : ''} ${s.ok ? '' : 'dim'}">
       <td>${s.name}</td>
-      <td class="num">${s.points ? pts(s.points) : '0'}${upg ? `<br><span class="hint">${pts(s.perSector)} pp/flight, only if it clears</span>` : ''}</td>
+      <td class="num">${s.points ? pts(s.points) : '0'}${upg ? `<br><span class="hint">${pts(s.perSector)} per person per flight, charged only if it clears</span>` : ''}</td>
       <td class="num">${aud(s.cash)}</td>
       <td>${s.cabin}</td>
-      <td class="num">${s.points ? chip(cpp(s.cpp), cppTone(s.cpp)) : '—'}${upg ? '<br><span class="hint">if it clears</span>' : ''}</td>
+      <td class="num">${s.points ? chip(cpp(s.cpp), cppTone(s.cpp)) : 'n/a'}${upg ? '<br><span class="hint">if it clears</span>' : ''}</td>
       <td class="num"><b>${aud(s.gain)}</b></td>
       <td>${tags.join(' ')}</td>
     </tr>`;
@@ -211,16 +211,16 @@ function renderRanking() {
     const b = r.best;
     const flags = [];
     if (d && d.vic.length) flags.push(chip('school hols', 'bad'));
-    if (d && d.jp.length) flags.push(chip('JP busy', 'warn'));
-    if (b && b.available === 'unknown' && b.points) flags.push(chip('seats?', 'warn'));
-    if (b && b.key.endsWith('Upgrade')) flags.push(chip(`${pct(b.prob)} odds`, 'warn'));
+    if (d && d.jp.length) flags.push(chip('busy in Japan', 'warn'));
+    if (b && b.available === 'unknown' && b.points) flags.push(chip('check seats', 'warn'));
+    if (b && b.key.endsWith('Upgrade')) flags.push(chip(`${pct(b.prob)} upgrade chance`, 'warn'));
     return `<tr data-goto="${j.id}" class="${n === 0 && b ? 'best' : ''}">
-      <td>${n + 1}</td><td><a href="#" data-goto="${j.id}">${esc(j.label || 'Untitled journey')}</a><br><span class="hint">${esc(r.codes.join('→'))}</span></td>
-      <td>${d ? fmtDate(j.depart) + (j.ret ? ' – ' + fmtDate(j.ret) : '') : '<span class="hint">no dates</span>'}</td>
+      <td>${n + 1}</td><td><a href="#" data-goto="${j.id}">${esc(j.label || 'Untitled journey')}</a><br><span class="hint">${esc(r.codes.join('-'))}</span></td>
+      <td>${d ? fmtDate(j.depart) + (j.ret ? ' to ' + fmtDate(j.ret) : '') : '<span class="hint">no dates</span>'}</td>
       <td>${b ? b.name : '<span class="hint">need fares</span>'}</td>
-      <td class="num">${b ? pts(b.points) : '—'}</td><td class="num">${b ? aud(b.cash) : '—'}</td>
-      <td class="num">${b && b.points ? chip(cpp(b.cpp), cppTone(b.cpp)) : '—'}</td>
-      <td class="num"><b>${b ? aud(b.gain) : '—'}</b></td><td>${flags.join(' ')}</td>
+      <td class="num">${b ? pts(b.points) : 'n/a'}</td><td class="num">${b ? aud(b.cash) : 'n/a'}</td>
+      <td class="num">${b && b.points ? chip(cpp(b.cpp), cppTone(b.cpp)) : 'n/a'}</td>
+      <td class="num"><b>${b ? aud(b.gain) : 'n/a'}</b></td><td>${flags.join(' ')}</td>
     </tr>`;
   }).join('') || `<tr><td colspan="9" class="hint">No journeys yet.</td></tr>`;
 }
@@ -286,7 +286,7 @@ $('#btn-reset').addEventListener('click', () => {
 function toast(msg) { const t = $('#toast'); t.textContent = msg; setTimeout(() => { t.textContent = ''; }, 2500); }
 $('#btn-share').addEventListener('click', async () => {
   const url = location.origin + location.pathname + encodeShare(state);
-  try { await navigator.clipboard.writeText(url); toast('Link copied — anyone opening it sees your journeys.'); }
+  try { await navigator.clipboard.writeText(url); toast('Link copied. Anyone who opens it sees your journeys.'); }
   catch { prompt('Copy this link:', url); }
 });
 $('#btn-csv').addEventListener('click', () => {
