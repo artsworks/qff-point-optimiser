@@ -37,20 +37,14 @@ tr.best td{background:rgba(53,193,132,.07)}
 .results .row{display:flex;gap:10px;flex-wrap:wrap;align-items:baseline}
 .kv{background:#0f141b;border:1px solid var(--line);border-radius:7px;padding:8px 12px;font-size:13.5px}
 .kv b{font-variant-numeric:tabular-nums}
-#decision-list{padding-left:20px;display:grid;gap:10px}
-#decision-list li{line-height:1.45}
-#decision-list li.hit{color:var(--text)}
-#decision-list li.miss{color:var(--muted)}
-#decision-list .tag{font-weight:700;margin-right:6px}
-#candidates td input,#candidates td select{width:100%;min-width:80px;padding:5px 7px;font-size:13px}
-#candidates td input.dateish{min-width:130px}
-#candidates td.comp{font-size:12.5px;line-height:1.5;white-space:normal;min-width:210px}
-.btnrow{display:flex;gap:10px;margin-top:12px}
-button{background:#243041;border:1px solid var(--line);color:var(--text);border-radius:7px;
+.btnrow{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;align-items:center}
+button,.btn{display:inline-block;text-decoration:none;background:#243041;border:1px solid var(--line);color:var(--text);border-radius:7px;
   padding:8px 14px;font-size:13.5px;cursor:pointer}
-button:hover{background:#2c3a4f}
+button:hover,.btn:hover{background:#2c3a4f}
+button.primary,.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.primary:hover,.btn.primary:hover{background:#c20000}
+button.small,.btn.small{padding:5px 10px;font-size:12.5px}
 button.danger{color:var(--bad)}
-button.del{padding:4px 9px;font-size:12px}
 details{margin-top:12px}
 summary{cursor:pointer;color:var(--muted);font-size:13.5px}
 table.mini td{white-space:normal}
@@ -59,3 +53,25 @@ table.mini td{white-space:normal}
 .refs.links a{color:#7da2e0}
 footer{max-width:1080px;margin:0 auto;padding:0 20px 32px;color:var(--muted);font-size:12.5px}
 @media(max-width:640px){th,td{padding:6px 7px}}
+.howto{margin-top:14px;max-width:80ch}
+.howto ol{margin:8px 0 0;padding-left:20px;display:grid;gap:4px;color:var(--muted);font-size:14px}
+.howto b{color:var(--text)}
+.journey{border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-top:16px;background:#131820}
+.j-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.j-title{flex:1;min-width:220px;font-size:16px;font-weight:700;background:transparent;border-color:transparent;padding-left:4px}
+.j-title:hover{border-color:var(--line)}
+.j-actions{display:flex;gap:8px;flex-wrap:wrap}
+.j-verdict{margin:8px 0 4px;font-size:14px}
+.j-verdict p{margin:4px 0}
+.j-verdict .big{font-size:15.5px}
+.j-verdict a{color:#7da2e0}
+.j-flags{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.j-inputs{margin:8px 0}
+fieldset{border:1px solid var(--line);border-radius:8px;margin:10px 0 0;padding:10px 12px 12px}
+legend{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px;padding:0 6px}
+tr.dim td{opacity:.5}
+.j-table td{white-space:normal}
+.rules{margin:0;padding-left:20px;display:grid;gap:8px;font-size:14px;color:var(--muted)}
+.rules b{color:var(--text)}
+#ranking a{color:var(--text)}
+#ranking tbody tr{cursor:pointer}

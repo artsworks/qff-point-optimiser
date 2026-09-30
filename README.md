@@ -3,31 +3,40 @@
 A zero-dependency static tool (GitHub Pages) for working out the best value per
 Qantas Frequent Flyer point for a Melbourne → Japan trip — built around a
 400,000-point balance and the post-5 Aug 2025 Classic Reward table
-(Zone 6: 4,801–5,800 miles).
+(zones 1–10; MEL → Japan is Zone 6, 4,801–5,800 miles).
 
 **Live site:** https://artsworks.github.io/qff-points-optimizer/
 
 ## What it does
 
-- **Strategy comparison** — Economy / Premium Economy / Business / First Classic
-  Rewards vs *paid Economy + Classic Upgrade*, side by side: points, cash,
-  leftover balance, net value, cents-per-point, and a combined "score" that
-  prices leftover points at an assumed ¢/pt.
-- **Upgrade expected value** — model the upgrade probability `P` explicitly
-  (Qantas publishes no clear-rate): expected net value, ¢/pt if it clears,
-  chance of flying Economy anyway, and the breakeven `P*` at which the upgrade
-  path beats a confirmed Business Reward. Points are treated as spent only if
-  the upgrade confirms, matching Qantas' rules.
-- **Fare-class guard** — warns when a fare class can't be upgraded
-  (international sale classes E/N/O/Q are excluded).
-- **Date checker** — flags trips overlapping Victorian school holidays or
-  Japanese busy periods (Golden Week, Obon, Silver Week, New Year) and
-  highlights the preferred 2027 windows.
-- **Candidate flights table** — one row per real itinerary found on the Qantas
-  site; computes reward/upgrade points and CPP per row; CSV export; everything
-  persists in `localStorage`.
-- **Decision guide** — applies the A–E rule hierarchy from the trip brief to
-  whatever availability you enter.
+Add one **journey** per real itinerary you find (dates + route + same-flight
+cash fares + reward-seat availability from the
+[Qantas Flight Reward finder](https://flightrewardfinder.qantas.com/)). For each
+journey it:
+
+- **Works out the zone from the route** (`MEL-NRT`, `MEL-SYD-HND`,
+  `MEL-NRT-FUK`…) via great-circle miles, uses the Qantas or partner table for
+  zones 1–10, flags routes near a zone edge, and lets you override the zone.
+- **Compares every option**: Economy / PE / Business Classic Rewards, Business
+  one way + Economy the other, paid Economy or PE + Classic Upgrade, and cash.
+- **Gives a plain-English verdict**: best option, runner-up, and for the
+  upgrade route the price you're effectively paying per point saved and the
+  break-even upgrade odds.
+- **Checks fare class** (G K L M S V / B H Y upgradeable; others not) and seat
+  availability, and marks options that exceed your balance.
+- **Checks dates** against 2027 VIC school holidays, Japanese busy periods and
+  seasons, and shows when rewards open (~353 days out).
+
+A **ranking table** sorts all journeys by *Gain* (trip value − cash − points ×
+your ¢/pt). Tailor with balance, travellers, status, what a point is worth to
+you, and how much Business is worth to you. Share link (state in URL), CSV
+export, `localStorage` persistence.
+
+All maths is in `calc.js` (pure, UMD) and tested:
+
+```sh
+node --test test/calc.test.js
+```
 
 ## Key numbers (Zone 6, per person, return)
 

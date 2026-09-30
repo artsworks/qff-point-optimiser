@@ -1,300 +1,308 @@
 'use strict';
-/* QFF Points Optimiser — all logic client-side, state in localStorage. */
+/* UI layer. All maths lives in calc.js (window.QFF). */
+const Q = window.QFF;
+const LS_KEY = 'qff-optimiser-v2';
+const FINDER_URL = 'https://flightrewardfinder.qantas.com/';
+const STATUS_WINDOW = { bronze: '24 hours', silver: '24 hours', gold: '24 hours', platinum: '3 days', p1: '7 days' };
 
-// ── Constants (Zone 6, per-person RETURN, Qantas table from 5 Aug 2025) ──
-const REWARD_PTS = { economy: 72400, premium: 147600, business: 196800, first: 295400 };
-const UPGRADE_PRESETS = { paid: 78500, flexible: 43100, reward: 83600 }; // Econ→Business, pp one-way
-const LS_KEY = 'qff-optimiser-v1';
+const newJourney = (over = {}) => ({
+  id: Math.random().toString(36).slice(2, 9),
+  label: '', route: 'MEL-NRT', airline: 'qantas', zone: '', oneWay: false,
+  depart: '', ret: '',
+  econCash: '', econClass: '', upgEconCash: '', peCash: '', peFareType: 'pe', bizCash: '',
+  taxEcon: '', taxPremium: '', bizSeats: '', econSeats: '', prob: 50,
+  ...over,
+});
+const DEFAULT_STATE = () => ({
+  setup: { balance: 400000, travellers: 2, status: 'bronze', futureCpp: 1, bizWeight: 100 },
+  journeys: [newJourney({
+    label: 'Example — mid-May 2027 (edit me)', depart: '2027-05-10', ret: '2027-05-24',
+    econCash: 2400, bizCash: 10000, taxEcon: 500, taxPremium: 700,
+  })],
+});
 
-// 2027 ranges [startISO, endISO] inclusive
-const VIC_HOLIDAYS = [
-  ['Autumn holidays', '2027-03-26', '2027-04-11'],
-  ['Winter holidays', '2027-06-26', '2027-07-11'],
-  ['Spring holidays', '2027-09-18', '2027-10-03'],
-  ['Summer holidays', '2027-12-18', '2028-01-28'], // 2028 end approx.
-];
-const PREFERRED = [
-  ['12 Apr – 25 Jun', '2027-04-12', '2027-06-25'],
-  ['12 Jul – 17 Sep', '2027-07-12', '2027-09-17'],
-  ['4 Oct – 17 Dec', '2027-10-04', '2027-12-17'],
-];
-const JP_BUSY = [
-  ['Golden Week', '2027-04-29', '2027-05-06'],
-  ['Obon', '2027-08-13', '2027-08-16'],
-  ['Silver Week', '2027-09-18', '2027-09-23'],
-  ['New Year', '2027-12-28', '2028-01-04'],
-];
+let state = loadState();
 
-// ── State ──────────────────────────────────────────────────────────
-const DEFAULTS = {
-  balance: 400000, travellers: 2, sectors: 2, taxes: 600, futureCpp: 1.2,
-  econCash: 2400, premCash: 0, bizCash: 10000,
-  upgradeType: 'paid', upgradeCustom: 78500, fareClass: 'eligible', prob: 50,
-  bizSeats: 0, econSeats: 0, depart: '', ret: '',
-  rows: [],
-};
-let state = load();
-
-function load() {
-  try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(LS_KEY) || '{}') }; }
-  catch { return { ...DEFAULTS }; }
+function loadState() {
+  const fromHash = decodeShare(location.hash);
+  if (fromHash) { history.replaceState(null, '', location.pathname); return fromHash; }
+  try {
+    const s = JSON.parse(localStorage.getItem(LS_KEY));
+    if (s && s.setup && Array.isArray(s.journeys)) return s;
+  } catch { /* fall through */ }
+  return DEFAULT_STATE();
 }
-function save() { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
-
-// ── Format helpers ─────────────────────────────────────────────────
-const $ = (id) => document.getElementById(id);
-const fmtPts = (n) => Math.round(n).toLocaleString('en-AU');
-const fmtAud = (n) => '$' + Math.round(n).toLocaleString('en-AU');
-const fmtCpp = (c) => isFinite(c) ? c.toFixed(2) + '¢' : '—';
-function cppClass(c) { return !isFinite(c) ? '' : c >= 1.5 ? 'good' : c >= 1 ? 'warn' : 'bad'; }
-
-// ── Core maths ─────────────────────────────────────────────────────
-function rewardRow(cabin, cashEquiv, taxes, T, balance, f) {
-  const pts = REWARD_PTS[cabin] * T;
-  const net = cashEquiv > 0 ? cashEquiv - taxes : NaN;
-  const cpp = net / pts * 100;
-  const left = balance - pts;
-  const score = (isFinite(net) ? net : 0) + Math.max(0, left) * f;
-  return { pts, left, net, cpp, score, fits: pts <= balance };
-}
-function upgradeMath(s) {
-  const perSector = s.upgradeType === 'custom' ? s.upgradeCustom : UPGRADE_PRESETS[s.upgradeType];
-  const U = perSector * s.travellers * s.sectors;
-  const P = s.prob / 100;
-  const f = s.futureCpp / 100;
-  const cabinEV = P * s.bizCash + (1 - P) * s.econCash;
-  const netEV = cabinEV - s.econCash;                       // = P·(B−E)
-  const cppIfClears = (s.bizCash - s.econCash) / U * 100;   // value of the 314k if it works
-  const evPerCommitted = netEV / U * 100;
-  const expLeft = s.balance - P * U;
-  const score = netEV + expLeft * f;
-  // Breakeven vs Business Reward on expected total value:
-  // score_biz = (B − taxes) + (balance − ptsBiz)·f ;  score_upg = P·(B−E) + (balance − P·U)·f
-  const ptsBiz = REWARD_PTS.business * s.travellers;
-  const num = (s.bizCash - s.taxes) - ptsBiz * f;           // Score_biz − balance·f
-  const den = (s.bizCash - s.econCash) - U * f;
-  const pStar = den > 0 ? num / den : NaN;
-  return { U, P, netEV, cppIfClears, evPerCommitted, expLeft, score, pStar, ptsBiz };
+const save = () => localStorage.setItem(LS_KEY, JSON.stringify(state));
+function encodeShare(s) { return '#s=' + btoa(unescape(encodeURIComponent(JSON.stringify(s)))); }
+function decodeShare(hash) {
+  const m = /^#s=(.+)$/.exec(hash || '');
+  if (!m) return null;
+  try {
+    const s = JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+    return s && s.setup && Array.isArray(s.journeys) ? s : null;
+  } catch { return null; }
 }
 
-// ── Render: strategy table ─────────────────────────────────────────
-function renderStrategies() {
-  const s = state, T = s.travellers, f = s.futureCpp / 100, tb = $('strategy-table').tBodies[0];
-  const rows = [
-    { name: 'Economy Classic Reward', ...rewardRow('economy', s.econCash, s.taxes, T, s.balance, f), cabin: 'Economy — confirmed', cash: s.taxes },
-    { name: 'Premium Economy Reward', ...rewardRow('premium', s.premCash, s.taxes, T, s.balance, f), cabin: 'Prem. Econ — confirmed', cash: s.taxes },
-    { name: 'Business Classic Reward', ...rewardRow('business', s.bizCash, s.taxes, T, s.balance, f), cabin: 'Business — confirmed', cash: s.taxes },
-    { name: 'First Classic Reward', ...rewardRow('first', 0, s.taxes, T, s.balance, f), cabin: 'First — confirmed', cash: s.taxes },
-  ];
-  const u = upgradeMath(s);
-  rows.push({
-    name: 'Paid Economy + Upgrade',
-    pts: u.U, left: s.balance - u.U, net: u.netEV, cpp: u.evPerCommitted,
-    score: u.score, fits: u.U <= s.balance,
-    cabin: `Business @ ${s.prob}% (else Economy)`, cash: s.econCash, isUpgrade: true,
-  });
+// ── Formatting ──
+const $ = (sel, el = document) => el.querySelector(sel);
+const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const pts = (n) => isFinite(n) ? Math.round(n).toLocaleString('en-AU') : '—';
+const aud = (n) => isFinite(n) ? (n < 0 ? '−$' : '$') + Math.abs(Math.round(n)).toLocaleString('en-AU') : '—';
+const cpp = (c) => isFinite(c) ? c.toFixed(2) + '¢' : '—';
+const pct = (p) => Math.round(p * 100) + '%';
+const cppTone = (c) => !isFinite(c) ? '' : c >= 1.5 ? 'good' : c >= 1 ? 'warn' : 'bad';
+const chip = (text, tone = '') => `<span class="chip ${tone}">${text}</span>`;
+const fmtDate = (iso) => iso ? new Date(iso + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+const setupForCalc = () => ({ ...state.setup, bizWeight: (Number(state.setup.bizWeight) || 100) / 100 });
 
-  const best = rows.filter(r => r.fits && isFinite(r.net)).sort((a, b) => b.score - a.score)[0];
-  tb.innerHTML = rows.map(r => `
-    <tr class="${r === best ? 'best' : ''}">
-      <td>${r.name}${r === best ? ' <span class="chip good">best score</span>' : ''}${r.fits ? '' : ' <span class="chip bad">over balance</span>'}</td>
-      <td class="num">${fmtPts(r.pts)}</td>
-      <td class="num">${fmtAud(r.cash)}</td>
-      <td class="num">${r.left < 0 ? '—' : fmtPts(r.left)}</td>
-      <td>${r.cabin}</td>
-      <td class="num">${isFinite(r.net) ? fmtAud(r.net) : '—'}${r.isUpgrade ? ' <span class="hint">EV</span>' : ''}</td>
-      <td class="num"><span class="chip ${cppClass(r.cpp)}">${fmtCpp(r.cpp)}</span></td>
-      <td class="num">${isFinite(r.net) ? fmtAud(r.score) : '—'}</td>
-    </tr>`).join('');
-}
-
-// ── Render: upgrade panel ──────────────────────────────────────────
-function renderUpgrade() {
-  const s = state, u = upgradeMath(s), el = $('upgrade-results');
-  const eligible = s.fareClass !== 'excluded';
-  const biz = rewardRow('business', s.bizCash, s.taxes, s.travellers, s.balance, s.futureCpp / 100);
-  const saved = u.ptsBiz - u.U;
-
-  let pText;
-  if (!isFinite(u.pStar)) pText = 'Upgrade EV can never match the Business Reward at these values.';
-  else if (u.pStar <= 0) pText = 'Upgrade beats the Business Reward on expected value at any P &gt; 0.';
-  else if (u.pStar > 1) pText = `Upgrade EV only beats Business Reward if P &gt; ${(u.pStar * 100).toFixed(0)}% — i.e. effectively never at these values.`;
-  else pText = `Upgrade beats Business Reward on expected value when P &gt; <b>${(u.pStar * 100).toFixed(0)}%</b>.`;
-
-  el.innerHTML = `
-    ${!eligible ? `<div class="row"><span class="chip bad">Fare class not upgrade-eligible</span> Sale fares in E, N, O, Q cannot be upgraded — check the booking class before relying on this path.</div>` : ''}
-    ${s.fareClass === 'unknown' ? `<div class="row"><span class="chip warn">Eligibility unknown</span> Confirm the fare class is not E/N/O/Q before counting on an upgrade.</div>` : ''}
-    <div class="row">
-      <span class="kv">Upgrade cost <b>${fmtPts(u.U)}</b> pts (${fmtPts(u.U / s.sectors / s.travellers)}/pp/sector)</span>
-      <span class="kv">Saves <b>${fmtPts(saved)}</b> pts vs Business Reward ≈ <b>${fmtAud(saved * s.futureCpp / 100)}</b> at ${s.futureCpp}¢/pt</span>
-      <span class="kv">¢/pt <b>if upgrade clears</b>: <span class="chip ${cppClass(u.cppIfClears)}">${fmtCpp(u.cppIfClears)}</span></span>
-      <span class="kv">Business Reward ¢/pt: <span class="chip ${cppClass(biz.cpp)}">${fmtCpp(biz.cpp)}</span></span>
+// ── Journey card ──
+function cardHtml(j) {
+  const sel = (k, opts) => `<select data-k="${k}">${opts.map(([v, l]) => `<option value="${v}" ${String(j[k]) === String(v) ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+  const inp = (k, type = 'number', extra = '') => `<input data-k="${k}" type="${type}" value="${esc(j[k])}" ${extra}>`;
+  const T = Number(state.setup.travellers) || 2;
+  const seatOpts = [['', 'Not checked'], ...Array.from({ length: T + 1 }, (_, i) => [i, i === T ? `${i}+ (enough)` : String(i)])];
+  const zoneOpts = [['', 'Auto from route'], ...Array.from({ length: 10 }, (_, i) => [i + 1, `Zone ${i + 1}`])];
+  return `
+  <article class="journey" data-id="${j.id}">
+    <div class="j-head">
+      <input class="j-title" data-k="label" value="${esc(j.label)}" placeholder="Journey name, e.g. 'Mid-May Tokyo'">
+      <div class="j-actions">
+        <a class="btn small" href="${FINDER_URL}" target="_blank" rel="noopener">Check reward seats ↗</a>
+        <button type="button" class="small" data-act="dup">Duplicate</button>
+        <button type="button" class="small danger" data-act="del">Remove</button>
+      </div>
     </div>
-    <div class="row">
-      <span class="kv">Expected net value: <b>${fmtAud(u.netEV)}</b></span>
-      <span class="kv">EV per committed point: <span class="chip ${cppClass(u.evPerCommitted)}">${fmtCpp(u.evPerCommitted)}</span></span>
-      <span class="kv">Chance of flying Economy anyway: <b>${100 - s.prob}%</b></span>
-    </div>
-    <div class="row">${pText}</div>
-    <div class="row hint">Outcomes — clears: Business for 2, ${fmtPts(u.U)} pts spent, ${fmtPts(s.balance - u.U)} left · fails: Economy, 0 pts spent, full balance kept. ${eligible ? '' : 'Currently moot — the selected fare class cannot be upgraded.'}</div>`;
+    <div class="j-verdict"></div>
+    <details class="j-inputs" ${j.bizCash || j.econCash ? '' : 'open'}>
+      <summary>Edit details</summary>
+      <fieldset><legend>Trip</legend><div class="grid inputs">
+        <label>Route (one way) <span class="hint">airport codes, e.g. MEL-NRT or MEL-SYD-HND</span>${inp('route', 'text')}</label>
+        <label>Airline${sel('airline', [['qantas', 'Qantas / Jetstar / AA'], ['partner', 'Partner (e.g. Japan Airlines)']])}</label>
+        <label>Zone${sel('zone', zoneOpts)}</label>
+        <label>Trip type${sel('oneWay', [['false', 'Return'], ['true', 'One way']])}</label>
+        <label>Depart${inp('depart', 'date')}</label>
+        <label>Return${inp('ret', 'date')}</label>
+      </div></fieldset>
+      <fieldset><legend>Cash fares — total for all travellers, whole trip</legend><div class="grid inputs">
+        <label>Economy (cheapest) $${inp('econCash', 'number', 'min="0" step="50"')}</label>
+        <label>Business $${inp('bizCash', 'number', 'min="0" step="50"')}</label>
+        <label>Premium Economy $ <span class="hint">optional</span>${inp('peCash', 'number', 'min="0" step="50"')}</label>
+        <label>Upgradeable Economy $ <span class="hint">if dearer than cheapest</span>${inp('upgEconCash', 'number', 'min="0" step="50" placeholder="same as cheapest"')}</label>
+        <label>Economy fare class <span class="hint">letter shown at booking</span>${inp('econClass', 'text', 'maxlength="1" placeholder="e.g. L"')}</label>
+        <label>Premium Economy fare type${sel('peFareType', [['discPE', 'Discount PE'], ['pe', 'Premium Economy'], ['flexPE', 'Flexible PE']])}</label>
+      </div></fieldset>
+      <fieldset><legend>From the Flight Reward finder</legend><div class="grid inputs">
+        <label>Business reward seats${sel('bizSeats', seatOpts)}</label>
+        <label>Economy reward seats${sel('econSeats', seatOpts)}</label>
+        <label>Taxes — Economy reward $ <span class="hint">total</span>${inp('taxEcon', 'number', 'min="0" step="10"')}</label>
+        <label>Taxes — Business/PE reward $ <span class="hint">total</span>${inp('taxPremium', 'number', 'min="0" step="10"')}</label>
+        <label class="wide">Chance the upgrade clears for everyone, both ways
+          <div class="sliderrow"><input data-k="prob" type="range" min="0" max="100" step="5" value="${esc(j.prob)}"><output class="o-prob">${esc(j.prob)}%</output></div>
+          <span class="hint">Qantas doesn't publish odds — try a few values and watch the verdict.</span>
+        </label>
+      </div></fieldset>
+    </details>
+    <div class="j-flags"></div>
+    <div class="tablewrap"><table class="j-table">
+      <thead><tr><th>Option</th><th class="num">Points</th><th class="num">Cash</th><th>You fly</th><th class="num">¢/pt</th><th class="num">Gain</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </article>`;
 }
 
-// ── Render: date checker ───────────────────────────────────────────
-const inRange = (d, r) => d >= r[1] && d <= r[2];
-const overlaps = (a1, a2, r) => a1 <= r[2] && a2 >= r[1];
+function evalJourney(j) {
+  return Q.evaluate(setupForCalc(), { ...j, oneWay: String(j.oneWay) === 'true' });
+}
 
-function renderDates() {
-  const s = state, el = $('date-results');
-  if (!s.depart || !s.ret || s.ret < s.depart) {
-    el.innerHTML = `<div class="row hint">Pick a departure and return date to check against school holidays and Japan busy periods.</div>`;
-    return;
-  }
+function verdictHtml(j, r) {
+  const f = Number(state.setup.futureCpp) || 0;
+  const T = r.T;
+  if (!r.strategies.length) return `<p class="hint">Enter at least the Economy and Business cash fares to see a verdict.</p>`;
+  const b = r.best;
+  if (!b) return `<p>${chip('No workable option', 'bad')} Nothing fits your balance with the seats/fare class entered.</p>`;
   const lines = [];
-  const vic = VIC_HOLIDAYS.filter(r => overlaps(s.depart, s.ret, r));
-  const jp = JP_BUSY.filter(r => overlaps(s.depart, s.ret, r));
-  const pref = PREFERRED.filter(r => s.depart >= r[1] && s.ret <= r[2]);
-  const prefPart = PREFERRED.filter(r => overlaps(s.depart, s.ret, r) && !pref.includes(r));
+  lines.push(`<p class="big"><b>Best: ${b.name}</b> — ${b.points ? pts(b.points) + ' pts + ' : ''}${aud(b.cash)} cash${b.points ? ` · ${cpp(b.cpp)}/pt` : ''} · gain ${aud(b.gain)}</p>`);
+  const runner = r.ranked[1];
+  if (runner) lines.push(`<p>Next best: ${runner.name} (gain ${aud(runner.gain)}, ${aud(b.gain - runner.gain)} less).</p>`);
+  if (b.available === 'unknown') lines.push(`<p>${chip('Check seats', 'warn')} Confirm ${T} seats on the <a href="${FINDER_URL}" target="_blank" rel="noopener">Flight Reward finder</a> before relying on this.</p>`);
 
-  if (vic.length) lines.push(`<span class="chip bad">Conflicts:</span> overlaps VIC school holidays — ${vic.map(r => r[0]).join(', ')}.`);
-  if (pref.length) lines.push(`<span class="chip good">Preferred:</span> fully inside preferred window ${pref.map(r => r[0]).join(', ')}.`);
-  else if (prefPart.length) lines.push(`<span class="chip warn">Partial:</span> touches preferred window ${prefPart.map(r => r[0]).join(', ')} but also sits outside it.`);
-  else if (!vic.length) lines.push(`<span class="chip warn">Outside preferred windows</span> — term time, but not inside the priority windows in the brief.`);
-  if (jp.length) lines.push(`<span class="chip warn">Japan busy:</span> overlaps ${jp.map(r => r[0]).join(', ')} — expect higher fares/crowds.`);
-  if (!vic.length && !jp.length && pref.length) lines.push(`<span class="chip good">Clean window:</span> no school-holiday or Japan-holiday conflicts detected.`);
-
-  el.innerHTML = lines.map(l => `<div class="row">${l}</div>`).join('');
+  const c = r.compare, upg = r.strategies.find((s) => s.key === 'econUpgrade');
+  if (c && upg && upg.eligible !== false) {
+    lines.push(`<p>Upgrade route vs Business Reward: saves <b>${pts(c.savedPts)} pts</b> but costs <b>${aud(c.extraCash)} more cash</b> — like buying points at <b>${cpp(c.impliedCpp)}</b> each (you value them at ${f}¢). ${breakevenText(c)}</p>`);
+  }
+  return lines.join('');
+}
+function breakevenText(c) {
+  const p = c.breakevenP;
+  if (!isFinite(p)) return '';
+  const winsAt = (P) => c.upgradeBetterAbove ? P > p : P < p;
+  const w0 = winsAt(0), w1 = winsAt(1);
+  if (w0 && w1) return 'It beats the Business Reward at any odds.';
+  if (!w0 && !w1) return 'It can\'t beat the Business Reward, even if the upgrade is certain to clear.';
+  if (w1) return `It only beats the Business Reward if the upgrade clears with better than <b>${pct(p)}</b> odds.`;
+  return `It only wins at low odds (below ${pct(p)}) — i.e. keeping your points and flying Economy is what's winning.`;
 }
 
-// ── Render: candidate flights table ────────────────────────────────
-const FARE_OPTS = [
-  ['eligible', 'Eligible'], ['flexible', 'Flexible (43.1k)'],
-  ['excluded', 'Sale E/N/O/Q — not eligible'], ['unknown', 'Unknown'],
-];
-const SEAT_OPTS = [[0, '0'], [1, '1'], [2, '2+']];
+function flagsHtml(j, r) {
+  const out = [];
+  if (r.unknownAirports.length) out.push(chip(`Unknown airport ${r.unknownAirports.join(', ')} — set the zone manually`, 'bad'));
+  if (isFinite(r.miles)) out.push(chip(`${r.codes.join('→')} ≈ ${pts(r.miles)} mi · Zone ${r.zone}${j.zone ? ' (manual)' : ''}`));
+  else if (isFinite(r.zone)) out.push(chip(`Zone ${r.zone} (manual)`));
+  if (r.nearBoundary && !j.zone) out.push(chip('Near a zone edge — check points on Qantas', 'warn'));
+  if (j.econClass || r.strategies.some((s) => s.key === 'econUpgrade')) {
+    if (r.fareClass === 'excluded') out.push(chip(`Class ${esc(j.econClass.toUpperCase())} can't be upgraded`, 'bad'));
+    else if (r.fareClass === 'unknown') out.push(chip('Enter the Economy fare class to confirm upgrade eligibility', 'warn'));
+    else out.push(chip(`Class ${esc(j.econClass.toUpperCase())} upgradeable${r.fareClass === 'flexEcon' ? ' (flexible — 43,100/flight)' : ''}`, 'good'));
+  }
+  const d = Q.checkDates(j.depart, String(j.oneWay) === 'true' ? '' : j.ret);
+  if (d) {
+    out.push(chip(`${fmtDate(j.depart)}${j.ret && String(j.oneWay) !== 'true' ? ' – ' + fmtDate(j.ret) + ` · ${d.nights} nights` : ''}`));
+    d.vic.forEach((h) => out.push(chip(`Clashes: ${h}`, 'bad')));
+    d.jp.forEach((h) => out.push(chip(`Japan busy: ${h}`, 'warn')));
+    if (d.preferred) out.push(chip(`In preferred window ${d.preferred}`, 'good'));
+    else if (!d.vic.length) out.push(chip('Outside the preferred windows', 'warn'));
+    d.seasons.forEach(([s, tone]) => out.push(chip(s, tone === 'info' ? '' : tone)));
+    if (!d.covered) out.push(chip('Holiday data only covers 2027', 'warn'));
+    const today = new Date().toISOString().slice(0, 10);
+    const opens = (iso, what) => iso <= today ? `${what} bookable now` : `${what} opens ~${fmtDate(iso)}`;
+    out.push(chip(opens(d.outboundOpens, 'Outbound') + (d.returnOpens ? ' · ' + opens(d.returnOpens, 'return') : '')));
+  }
+  const status = state.setup.status || 'bronze';
+  if (r.strategies.some((s) => s.key.endsWith('Upgrade'))) out.push(chip(`Upgrades decided ≤${STATUS_WINDOW[status]} before departure at your status`));
+  return out.join(' ');
+}
 
-function newRow() {
-  return { id: Math.random().toString(36).slice(2), label: '', route: 'MEL–NRT', econ: '', biz: '', fareClass: 'eligible', bizSeats: 0 };
-}
-function rowUpgradePtsPerSector(fareClass) {
-  if (state.upgradeType === 'custom') return state.upgradeCustom;
-  return fareClass === 'flexible' ? UPGRADE_PRESETS.flexible : UPGRADE_PRESETS.paid;
-}
-function rowComputed(row) {
-  const T = state.travellers;
-  const econ = parseFloat(row.econ) || 0, biz = parseFloat(row.biz) || 0;
-  const bp = REWARD_PTS.business * T, ep = REWARD_PTS.economy * T, u2 = rowUpgradePtsPerSector(row.fareClass) * T * state.sectors;
-  const bits = [];
-  bits.push(Number(row.bizSeats) >= T ? `Biz reward ${fmtPts(bp)} pts · ${fmtCpp(biz ? (biz - state.taxes) / bp * 100 : NaN)}`
-                                      : `Biz reward <span class="chip bad">${row.bizSeats} seats</span>`);
-  bits.push(`Econ reward ${fmtPts(ep)} pts · ${fmtCpp(econ ? (econ - state.taxes) / ep * 100 : NaN)}`);
-  bits.push(row.fareClass !== 'excluded'
-    ? `Upgrade ${fmtPts(u2)} pts · ${fmtCpp(econ && biz ? (biz - econ) / u2 * 100 : NaN)} if clears`
-    : `Upgrade <span class="chip bad">n/a — fare excluded</span>`);
-  return bits.join('<br>');
-}
-function renderCandidates() {
-  const tb = $('candidates').tBodies[0];
-  tb.innerHTML = state.rows.map(r => {
-    return `<tr data-id="${r.id}">
-      <td><input class="dateish" data-k="label" value="${esc(r.label)}" placeholder="e.g. 10–24 May"></td>
-      <td><input data-k="route" value="${esc(r.route)}"></td>
-      <td class="num"><input data-k="econ" type="number" min="0" step="50" value="${r.econ}" placeholder="0"></td>
-      <td class="num"><input data-k="biz" type="number" min="0" step="50" value="${r.biz}" placeholder="0"></td>
-      <td><select data-k="fareClass">${FARE_OPTS.map(([v, l]) => `<option value="${v}" ${v === r.fareClass ? 'selected' : ''}>${l}</option>`).join('')}</select></td>
-      <td class="num"><select data-k="bizSeats">${SEAT_OPTS.map(([v, l]) => `<option value="${v}" ${Number(r.bizSeats) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></td>
-      <td class="comp">${rowComputed(r)}</td>
-      <td><button class="del" data-del="${r.id}">✕</button></td>
+function tableHtml(r) {
+  return r.strategies.map((s) => {
+    const tags = [];
+    if (s === r.best) tags.push(chip('best', 'good'));
+    if (!s.fits) tags.push(chip('over balance', 'bad'));
+    if (s.available === 'no') tags.push(chip('not enough seats', 'bad'));
+    if (s.available === 'unknown' && s.points) tags.push(chip('seats?', 'warn'));
+    if (s.eligible === false) tags.push(chip('fare not eligible', 'bad'));
+    if (s.key === 'peUpgrade') tags.push(chip('needs PE on the plane', 'warn'));
+    const upg = s.key.endsWith('Upgrade');
+    return `<tr class="${s === r.best ? 'best' : ''} ${s.ok ? '' : 'dim'}">
+      <td>${s.name}</td>
+      <td class="num">${s.points ? pts(s.points) : '0'}${upg ? `<br><span class="hint">${pts(s.perSector)} pp/flight, only if it clears</span>` : ''}</td>
+      <td class="num">${aud(s.cash)}</td>
+      <td>${s.cabin}</td>
+      <td class="num">${s.points ? chip(cpp(s.cpp), cppTone(s.cpp)) : '—'}${upg ? '<br><span class="hint">if it clears</span>' : ''}</td>
+      <td class="num"><b>${aud(s.gain)}</b></td>
+      <td>${tags.join(' ')}</td>
     </tr>`;
-  }).join('') || `<tr><td colspan="8" class="hint">No candidate flights yet — add one per itinerary you find on the Qantas site.</td></tr>`;
-}
-const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-
-// ── Render: decision guide ─────────────────────────────────────────
-function renderDecision() {
-  const s = state, T = s.travellers, u = upgradeMath(s);
-  const bizPts = REWARD_PTS.business * T, econPts = REWARD_PTS.economy * T;
-  const rules = [
-    { hit: s.bizSeats >= T,
-      t: `<b>A. Business Classic Reward available for all ${T} travellers</b> — strongest candidate: ${fmtPts(bizPts)} pts buys confirmed Business. Book it.` },
-    { hit: s.bizSeats < T && s.fareClass !== 'excluded' && s.econCash > 0,
-      t: `<b>B. No Business Reward, cheap eligible Economy</b> — investigate ${fmtPts(u.U)}-pt upgrade. ¢/pt if it clears: ${fmtCpp(u.cppIfClears)}. Verify fare class & Business-cabin availability.` },
-    { hit: s.bizSeats < T && s.econCash > 0 && u.cppIfClears < 1,
-      t: `<b>C. Expensive / poor-value Economy</b> — upgrade ¢/pt under 1¢ even if it clears. Wait for a better date rather than forcing this path.` },
-    { hit: s.bizSeats === 1,
-      t: `<b>D. Only 1 Business reward seat</b> — don't auto-split cabins. Search ±1–3 days and other Japan airports first.` },
-    { hit: s.bizSeats < T && s.econSeats >= T,
-      t: `<b>E. Economy Rewards abundant</b> — ${fmtPts(econPts)} pts keeps ${fmtPts(s.balance - econPts)} in the bank for another trip (≈${fmtAud((s.balance - econPts) * s.futureCpp / 100)} at ${s.futureCpp}¢/pt).` },
-  ];
-  $('decision-list').innerHTML = rules.map(r =>
-    `<li class="${r.hit ? 'hit' : 'miss'}"><span class="tag">${r.hit ? '▸' : '·'}</span>${r.t}</li>`).join('')
-    + `<li class="miss"><span class="tag">·</span>Timing: Classic Rewards open ~353 days ahead (earlier for status). Search outbound & return separately, ±1–3 days, all Japan airports; seats can appear in batches closer to departure.</li>`;
+  }).join('');
 }
 
-// ── CSV export ─────────────────────────────────────────────────────
-function exportCsv() {
-  const head = ['label', 'route', 'econ_cash', 'biz_cash', 'fare_class', 'biz_reward_seats',
-    'econ_reward_pts', 'biz_reward_pts', 'upgrade_pts', 'biz_cpp', 'econ_cpp', 'upgrade_cpp_if_clears'];
-  const T = state.travellers;
+function updateCard(j) {
+  const el = document.querySelector(`.journey[data-id="${j.id}"]`);
+  if (!el) return;
+  const r = evalJourney(j);
+  $('.j-verdict', el).innerHTML = verdictHtml(j, r);
+  $('.j-flags', el).innerHTML = flagsHtml(j, r);
+  $('.j-table tbody', el).innerHTML = tableHtml(r);
+  $('.o-prob', el).textContent = j.prob + '%';
+}
+
+function renderRanking() {
+  const rows = state.journeys.map((j, i) => ({ j, i, r: evalJourney(j), d: Q.checkDates(j.depart, j.ret) }));
+  rows.sort((a, b) => (b.r.best ? b.r.best.gain : -Infinity) - (a.r.best ? a.r.best.gain : -Infinity));
+  $('#ranking tbody').innerHTML = rows.map(({ j, r, d }, n) => {
+    const b = r.best;
+    const flags = [];
+    if (d && d.vic.length) flags.push(chip('school hols', 'bad'));
+    if (d && d.jp.length) flags.push(chip('JP busy', 'warn'));
+    if (b && b.available === 'unknown' && b.points) flags.push(chip('seats?', 'warn'));
+    if (b && b.key.endsWith('Upgrade')) flags.push(chip(`${pct(b.prob)} odds`, 'warn'));
+    return `<tr data-goto="${j.id}" class="${n === 0 && b ? 'best' : ''}">
+      <td>${n + 1}</td><td><a href="#" data-goto="${j.id}">${esc(j.label || 'Untitled journey')}</a><br><span class="hint">${esc(r.codes.join('→'))}</span></td>
+      <td>${d ? fmtDate(j.depart) + (j.ret ? ' – ' + fmtDate(j.ret) : '') : '<span class="hint">no dates</span>'}</td>
+      <td>${b ? b.name : '<span class="hint">need fares</span>'}</td>
+      <td class="num">${b ? pts(b.points) : '—'}</td><td class="num">${b ? aud(b.cash) : '—'}</td>
+      <td class="num">${b && b.points ? chip(cpp(b.cpp), cppTone(b.cpp)) : '—'}</td>
+      <td class="num"><b>${b ? aud(b.gain) : '—'}</b></td><td>${flags.join(' ')}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="9" class="hint">No journeys yet.</td></tr>`;
+}
+
+function renderAll() {
+  const box = $('#journeys');
+  box.innerHTML = state.journeys.map(cardHtml).join('');
+  state.journeys.forEach(updateCard);
+  renderRanking();
+  save();
+}
+
+// ── Setup wiring ──
+const SETUP_FIELDS = [['s-balance', 'balance'], ['s-travellers', 'travellers'], ['s-status', 'status'],
+  ['s-futurecpp', 'futureCpp'], ['s-bizweight', 'bizWeight']];
+SETUP_FIELDS.forEach(([id, key]) => {
+  const el = document.getElementById(id);
+  el.value = state.setup[key];
+  el.addEventListener('input', () => {
+    state.setup[key] = el.type === 'number' || el.type === 'range' ? (parseFloat(el.value) || 0) : el.value;
+    $('#o-bizweight').textContent = state.setup.bizWeight + '%';
+    if (key === 'travellers') renderAll();
+    else { state.journeys.forEach(updateCard); renderRanking(); save(); }
+  });
+});
+$('#o-bizweight').textContent = state.setup.bizWeight + '%';
+
+// ── Journey wiring ──
+const journeyOf = (el) => {
+  const card = el.closest('.journey');
+  return card ? state.journeys.find((j) => j.id === card.dataset.id) : null;
+};
+$('#journeys').addEventListener('input', (e) => {
+  const k = e.target.dataset.k, j = journeyOf(e.target);
+  if (!k || !j) return;
+  j[k] = e.target.value;
+  updateCard(j); renderRanking(); save();
+});
+$('#journeys').addEventListener('click', (e) => {
+  const act = e.target.dataset.act, j = journeyOf(e.target);
+  if (!act || !j) return;
+  if (act === 'del' && confirm(`Remove "${j.label || 'this journey'}"?`)) state.journeys = state.journeys.filter((x) => x !== j);
+  if (act === 'dup') {
+    const i = state.journeys.indexOf(j);
+    state.journeys.splice(i + 1, 0, { ...j, id: newJourney().id, label: (j.label || 'Journey') + ' (copy)' });
+  }
+  renderAll();
+});
+$('#ranking').addEventListener('click', (e) => {
+  const id = e.target.closest('[data-goto]')?.dataset.goto;
+  if (!id) return;
+  e.preventDefault();
+  document.querySelector(`.journey[data-id="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+$('#btn-add').addEventListener('click', () => {
+  state.journeys.push(newJourney({ label: `Journey ${state.journeys.length + 1}` }));
+  renderAll();
+  document.querySelector('.journey:last-child')?.scrollIntoView({ behavior: 'smooth' });
+});
+$('#btn-reset').addEventListener('click', () => {
+  if (confirm('Reset everything to the example?')) { state = DEFAULT_STATE(); SETUP_FIELDS.forEach(([id, k]) => { document.getElementById(id).value = state.setup[k]; }); renderAll(); }
+});
+function toast(msg) { const t = $('#toast'); t.textContent = msg; setTimeout(() => { t.textContent = ''; }, 2500); }
+$('#btn-share').addEventListener('click', async () => {
+  const url = location.origin + location.pathname + encodeShare(state);
+  try { await navigator.clipboard.writeText(url); toast('Link copied — anyone opening it sees your journeys.'); }
+  catch { prompt('Copy this link:', url); }
+});
+$('#btn-csv').addEventListener('click', () => {
+  const head = ['journey', 'route', 'depart', 'return', 'zone', 'option', 'points', 'expected_points', 'cash', 'cpp', 'gain', 'usable'];
   const lines = [head.join(',')];
-  for (const r of state.rows) {
-    const econ = parseFloat(r.econ) || 0, biz = parseFloat(r.biz) || 0;
-    const bp = REWARD_PTS.business * T, ep = REWARD_PTS.economy * T, up2 = rowUpgradePtsPerSector(r.fareClass) * T * state.sectors;
-    const row = [r.label, r.route, econ, biz, r.fareClass, r.bizSeats, ep, bp, up2,
-      biz ? ((biz - state.taxes) / bp * 100).toFixed(2) : '',
-      econ ? ((econ - state.taxes) / ep * 100).toFixed(2) : '',
-      (econ && biz) ? ((biz - econ) / up2 * 100).toFixed(2) : ''];
-    lines.push(row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+  for (const j of state.journeys) {
+    const r = evalJourney(j);
+    for (const s of r.strategies) {
+      lines.push([j.label, r.codes.join('-'), j.depart, j.ret, r.zone, s.name, s.points, Math.round(s.expPoints),
+        Math.round(s.cash), isFinite(s.cpp) ? s.cpp.toFixed(2) : '', Math.round(s.gain), s.ok ? 'yes' : 'no']
+        .map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','));
+    }
   }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
-  a.download = 'qff-candidates.csv';
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-// ── Wiring ─────────────────────────────────────────────────────────
-const BIND = [
-  ['in-balance', 'balance', 'num'], ['in-travellers', 'travellers', 'num'],
-  ['in-sectors', 'sectors', 'num'], ['in-taxes', 'taxes', 'num'],
-  ['in-futurecpp', 'futureCpp', 'num'], ['in-econcash', 'econCash', 'num'],
-  ['in-premcash', 'premCash', 'num'], ['in-bizcash', 'bizCash', 'num'],
-  ['in-upgradetype', 'upgradeType', 'str'], ['in-upgradecustom', 'upgradeCustom', 'num'],
-  ['in-fareclass', 'fareClass', 'str'], ['in-prob', 'prob', 'num'],
-  ['in-bizseats', 'bizSeats', 'num'], ['in-econseats', 'econSeats', 'num'],
-  ['in-depart', 'depart', 'str'], ['in-return', 'ret', 'str'],
-];
-function renderAll() { renderStrategies(); renderUpgrade(); renderDates(); renderCandidates(); renderDecision(); save(); }
-
-BIND.forEach(([id, key, type]) => {
-  const el = $(id);
-  el.value = state[key];
-  el.addEventListener('input', () => {
-    state[key] = type === 'num' ? (parseFloat(el.value) || 0) : el.value;
-    if (id === 'in-prob') $('out-prob').textContent = el.value + '%';
-    if (id === 'in-upgradetype') $('in-upgradecustom').disabled = el.value !== 'custom';
-    renderAll();
-  });
-});
-$('out-prob').textContent = state.prob + '%';
-$('in-upgradecustom').disabled = state.upgradeType !== 'custom';
-
-$('candidates').addEventListener('input', (e) => {
-  const tr = e.target.closest('tr[data-id]'); if (!tr) return;
-  const row = state.rows.find(r => r.id === tr.dataset.id); if (!row) return;
-  row[e.target.dataset.k] = e.target.dataset.k === 'bizSeats' ? Number(e.target.value) : e.target.value;
-  save();
-  tr.querySelector('.comp').innerHTML = rowComputed(row);
-});
-$('candidates').addEventListener('click', (e) => {
-  const id = e.target.dataset && e.target.dataset.del;
-  if (!id) return;
-  state.rows = state.rows.filter(r => r.id !== id);
-  renderAll();
-});
-$('btn-addrow').addEventListener('click', () => { state.rows.push(newRow()); renderAll(); });
-$('btn-csv').addEventListener('click', exportCsv);
-$('btn-clear').addEventListener('click', () => {
-  if (confirm('Remove all candidate flights?')) { state.rows = []; renderAll(); }
+  a.download = 'qff-journeys.csv'; a.click(); URL.revokeObjectURL(a.href);
 });
 
 renderAll();
