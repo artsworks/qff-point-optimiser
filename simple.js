@@ -1,6 +1,6 @@
 (() => {
-  const Q = window.QFF;
-  const LS_KEY = 'qff-simple-v1';
+  const Q = window.PTS;
+  const LS_KEY = 'points-simple-v1';
   const DEFAULTS = { balance: 400000, travellers: 2, oneway: 'false', route: 'MEL-NRT', econ: 2400, biz: 10000, tax: 700 };
   const $ = (s) => document.querySelector(s);
   const pts = (n) => Math.round(n).toLocaleString('en-AU');

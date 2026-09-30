@@ -3,25 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>QFF points optimiser, Melbourne to Japan</title>
-<meta name="description" content="Compare Qantas Frequent Flyer reward and upgrade options across journeys, with cents per point, upgrade chance and school holidays.">
+<title>Points optimiser, Melbourne to Japan</title>
+<meta name="description" content="Compare frequent flyer reward and upgrade options across journeys, with cents per point, upgrade chance and school holidays.">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <header>
   <nav class="tabs"><a href="./">Simple</a><a href="advanced.html" aria-current="page">Advanced</a></nav>
-  <h1>QFF points optimiser</h1>
-  <p class="sub">Compare ways to spend your Qantas Points on a trip. Add each itinerary you find, and the page picks the best option for each one and ranks them.</p>
+  <h1>Points optimiser</h1>
+  <p class="sub">Compare ways to spend your frequent flyer points on a trip. Add each itinerary you find, and the page picks the best option for each one and ranks them.</p>
   <div class="btnrow">
-    <a class="btn primary" href="https://flightrewardfinder.qantas.com/" target="_blank" rel="noopener">Open the Qantas Flight Reward finder</a>
-    <a class="btn" href="https://www.qantas.com/au/en/book-a-trip/flights.html" target="_blank" rel="noopener">Search Qantas cash fares</a>
+    <a class="btn primary" href="https://flightrewardfinder.qantas.com/" target="_blank" rel="noopener">Open the reward seat finder</a>
+    <a class="btn" href="https://www.qantas.com/au/en/book-a-trip/flights.html" target="_blank" rel="noopener">Search cash fares</a>
   </div>
   <details class="howto" open>
     <summary>How to use</summary>
     <ol>
       <li>Enter your points balance and the number of travellers.</li>
       <li>Search the Flight Reward finder for Melbourne to Japan in Business and Economy. Its calendar covers 12 months. Note the dates with a seat for every traveller, and the taxes it shows.</li>
-      <li>Add a journey for each date and route you want to compare. Enter the cash fares Qantas shows for the same flights. Each journey shows a verdict, and the ranking table puts the best journey first.</li>
+      <li>Add a journey for each date and route you want to compare. Enter the cash fares the airline shows for the same flights. Each journey shows a verdict, and the ranking table puts the best journey first.</li>
     </ol>
   </details>
 </header>
@@ -30,7 +30,7 @@
 <section class="card">
   <h2>1. Your setup</h2>
   <div class="grid inputs">
-    <label>Qantas Points balance
+    <label>Points balance
       <input type="number" id="s-balance" min="0" step="1000">
     </label>
     <label>Travellers
@@ -80,12 +80,12 @@
 <section class="card">
   <h2>Rules of thumb</h2>
   <ol class="rules">
-    <li>If Business Classic Reward seats exist for every traveller on dates you like, book them. Business is confirmed at booking.</li>
+    <li>If Business reward seats exist for every traveller on dates you like, book them. Business is confirmed at booking.</li>
     <li>If there are no Business reward seats, check paid Economy with a points upgrade. Only fare classes G, K, L, M, S and V (78,500 points per person per flight in Zone 6) or B, H and Y (43,100) can be upgraded. Sale fares in classes such as E, N, O and Q can't.</li>
     <li>The upgrade route saves points compared with a Business reward, and costs more cash. The verdict shows what you pay in cash for each point you save.</li>
-    <li>Qantas decides upgrades close to departure. A Business seat for sale doesn't mean an upgrade will clear. If it fails, you fly Economy and keep your points.</li>
+    <li>The airline decides upgrades close to departure. A Business seat for sale doesn't mean an upgrade will clear. If it fails, you fly Economy and keep your points.</li>
     <li>If only one Business seat is free, search 1 to 3 days either side and other Japanese airports before you split up. Business one way and Economy the other is another choice.</li>
-    <li>Reward seats open about 353 days before departure, and Qantas sometimes releases more closer to the date. Search the outbound and return flights separately.</li>
+    <li>Reward seats open about 353 days before departure, and the airline sometimes releases more closer to the date. Search the outbound and return flights separately.</li>
   </ol>
 </section>
 
@@ -93,25 +93,25 @@
   <details>
     <summary><b>Methodology, accuracy and sources</b></summary>
     <ul class="refs">
-      <li>Points prices come from the Qantas tables for bookings made from 5 August 2025. Qantas prices each person and each one-way trip by zone, based on flown miles. This page estimates the miles from the route you enter, adding each leg. Qantas may count a route slightly differently, so the page warns you when a route is close to a zone limit. You can also set the zone yourself.</li>
-      <li>Partner flights, such as Japan Airlines, use a separate and more expensive table.</li>
+      <li>Points prices come from the airline's reward tables for bookings made from 5 August 2025. It prices each person and each one-way trip by zone, based on flown miles. This page estimates the miles from the route you enter, adding each leg. The airline may count a route slightly differently, so the page warns you when a route is close to a zone limit. You can also set the zone yourself.</li>
+      <li>Partner airline flights use a separate and more expensive table.</li>
       <li>Cents per point is the cash value minus the cash you pay, divided by the points. For upgrades, the figure assumes the upgrade clears.</li>
-      <li>The value of an upgrade booking is P × the Business fare + (1 − P) × the Economy fare, where P is the chance it clears. The page counts the points as spent with chance P, because Qantas only takes them when the upgrade is confirmed.</li>
+      <li>The value of an upgrade booking is P × the Business fare + (1 − P) × the Economy fare, where P is the chance it clears. The page counts the points as spent with chance P, because the airline only takes them when the upgrade is confirmed.</li>
       <li>The break-even chance is the upgrade chance at which the upgrade route and the Business reward have the same gain.</li>
-      <li>The page doesn't model upgrading an Economy Classic Reward. At 83,600 points per person per flight, the return trip would cost 239,600 points per person, more than a Business reward at 196,800.</li>
+      <li>The page doesn't model upgrading an Economy reward. At 83,600 points per person per flight, the return trip would cost 239,600 points per person, more than a Business reward at 196,800.</li>
       <li>Holiday and season dates cover 2027. They come from the Victorian Government calendar and approximate Japanese holidays and seasons. Check them before you book.</li>
     </ul>
     <ul class="refs links">
-      <li><a href="https://flightrewardfinder.qantas.com/" target="_blank" rel="noopener">Flight Reward finder</a></li>
-      <li><a href="https://www.qantas.com/en-au/frequent-flyer/use-points/classic-flight-rewards/tables" target="_blank" rel="noopener">Classic Flight Reward tables</a></li>
-      <li><a href="https://www.qantas.com/en-au/frequent-flyer/use-points/classic-upgrade-rewards/tables" target="_blank" rel="noopener">Classic Upgrade Reward tables</a></li>
-      <li><a href="https://www.qantas.com/en-au/frequent-flyer/use-points/classic-upgrade-rewards" target="_blank" rel="noopener">Classic Upgrade Reward rules</a></li>
+      <li><a href="https://flightrewardfinder.qantas.com/" target="_blank" rel="noopener">Reward seat finder</a></li>
+      <li><a href="https://www.qantas.com/en-au/frequent-flyer/use-points/classic-flight-rewards/tables" target="_blank" rel="noopener">Reward tables</a></li>
+      <li><a href="https://www.qantas.com/en-au/frequent-flyer/use-points/classic-upgrade-rewards/tables" target="_blank" rel="noopener">Upgrade tables</a></li>
+      <li><a href="https://www.qantas.com/en-au/frequent-flyer/use-points/classic-upgrade-rewards" target="_blank" rel="noopener">Upgrade rules</a></li>
       <li><a href="https://www.vic.gov.au/school-term-dates-and-holidays-victoria" target="_blank" rel="noopener">Victorian school term dates</a></li>
     </ul>
   </details>
 </section>
 </main>
-<footer>This is a static page. Your data stays in your browser, or in share links you create. Not affiliated with Qantas.</footer>
+<footer>This is a static page. Your data stays in your browser, or in share links you create. Not affiliated with any airline.</footer>
 <script src="calc.js"></script>
 <script src="app.js"></script>
 </body>

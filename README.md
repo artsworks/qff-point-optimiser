@@ -1,6 +1,6 @@
-# QFF points optimiser
+# Frequent flyer points optimiser
 
-A static page, hosted on GitHub Pages, that compares ways to spend Qantas Frequent Flyer points on a trip. It was built for a Melbourne to Japan trip for two people with 400,000 points. It uses the Classic Reward tables for bookings made from 5 August 2025, zones 1 to 10. Direct Melbourne to Japan flights are Zone 6 (4,801 to 5,800 miles).
+A static page, hosted on GitHub Pages, that compares ways to spend frequent flyer points on a trip. It was built for a Melbourne to Japan trip for two people with 400,000 points. It uses the airline's reward tables for bookings made from 5 August 2025, zones 1 to 10. Direct Melbourne to Japan flights are Zone 6 (4,801 to 5,800 miles).
 
 Live site: https://artsworks.github.io/qff-point-optimiser/
 
@@ -10,11 +10,11 @@ The main page asks for your points, travellers, flight, and the Economy and Busi
 
 ## Advanced page
 
-On `advanced.html` you add one journey for each itinerary you find. A journey has dates, a route, cash fares for the same flights, and seat availability from the [Qantas Flight Reward finder](https://flightrewardfinder.qantas.com/). For each journey the page:
+On `advanced.html` you add one journey for each itinerary you find. A journey has dates, a route, cash fares for the same flights, and seat availability from the [reward seat finder](https://flightrewardfinder.qantas.com/). For each journey the page:
 
 - Estimates the miles from the route (for example `MEL-NRT`, `MEL-SYD-HND` or `MEL-NRT-FUK`) and picks the zone. It warns when a route is close to a zone limit, and you can set the zone yourself.
-- Uses the Qantas table, or the more expensive partner table for airlines such as Japan Airlines.
-- Compares Economy, Premium Economy and Business Classic Rewards, Business one way with Economy the other, paid Economy or Premium Economy with a points upgrade, and cash fares.
+- Uses the airline's own table, or the more expensive partner-airline table.
+- Compares Economy, Premium Economy and Business rewards, Business one way with Economy the other, paid Economy or Premium Economy with a points upgrade, and cash fares.
 - Names the best option and the next best. For the upgrade route it shows what you pay in cash for each point you save, and the upgrade chance at which it beats a Business reward.
 - Checks the Economy fare class. Classes G, K, L, M, S, V, B, H and Y can be upgraded, and other classes can't. It also marks options that need more points than you have.
 - Checks the dates against 2027 Victorian school holidays and busy periods in Japan, and shows when reward seats open, about 353 days before departure.
@@ -52,9 +52,9 @@ The site is served from the root of `main`. The `.nojekyll` file turns off Jekyl
 
 ## Sources
 
-- [Classic Flight Reward tables](https://www.qantas.com/en-au/frequent-flyer/use-points/classic-flight-rewards/tables)
-- [Classic Upgrade Reward tables](https://www.qantas.com/en-au/frequent-flyer/use-points/classic-upgrade-rewards/tables)
+- [Reward tables](https://www.qantas.com/en-au/frequent-flyer/use-points/classic-flight-rewards/tables)
+- [Upgrade tables](https://www.qantas.com/en-au/frequent-flyer/use-points/classic-upgrade-rewards/tables)
 - [Upgrade eligibility](https://www.qantas.com/en-au/manage-booking/upgrade)
 - [Victorian school term dates](https://www.vic.gov.au/school-term-dates-and-holidays-victoria)
 
-Not affiliated with Qantas. Your data stays in your browser.
+Not affiliated with any airline. Your data stays in your browser.

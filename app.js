@@ -1,13 +1,13 @@
 'use strict';
-/* UI layer. All maths lives in calc.js (window.QFF). */
-const Q = window.QFF;
-const LS_KEY = 'qff-optimiser-v2';
+/* UI layer. All maths lives in calc.js (window.PTS). */
+const Q = window.PTS;
+const LS_KEY = 'points-optimiser-v2';
 const FINDER_URL = 'https://flightrewardfinder.qantas.com/';
 const STATUS_WINDOW = { bronze: '24 hours', silver: '24 hours', gold: '24 hours', platinum: '3 days', p1: '7 days' };
 
 const newJourney = (over = {}) => ({
   id: Math.random().toString(36).slice(2, 9),
-  label: '', route: 'MEL-NRT', airline: 'qantas', zone: '', oneWay: false,
+  label: '', route: 'MEL-NRT', airline: 'main', zone: '', oneWay: false,
   depart: '', ret: '',
   econCash: '', econClass: '', upgEconCash: '', peCash: '', peFareType: 'pe', bizCash: '',
   taxEcon: '', taxPremium: '', bizSeats: '', econSeats: '', prob: 50,
@@ -77,7 +77,7 @@ function cardHtml(j) {
       <summary>Edit details</summary>
       <fieldset><legend>Trip</legend><div class="grid inputs">
         <label>Route (one way) <span class="hint">airport codes, for example MEL-NRT or MEL-SYD-HND</span>${inp('route', 'text')}</label>
-        <label>Airline${sel('airline', [['qantas', 'Qantas, Jetstar or American Airlines'], ['partner', 'Partner airline, such as Japan Airlines']])}</label>
+        <label>Airline${sel('airline', [['main', 'The airline itself'], ['partner', 'A partner airline']])}</label>
         <label>Zone${sel('zone', zoneOpts)}</label>
         <label>Trip type${sel('oneWay', [['false', 'Return'], ['true', 'One way']])}</label>
         <label>Depart${inp('depart', 'date')}</label>
@@ -98,7 +98,7 @@ function cardHtml(j) {
         <label>Taxes on Business or PE reward $ <span class="hint">total</span>${inp('taxPremium', 'number', 'min="0" step="10"')}</label>
         <label class="wide">Chance the upgrade clears for everyone, both ways
           <div class="sliderrow"><input data-k="prob" type="range" min="0" max="100" step="5" value="${esc(j.prob)}"><output class="o-prob">${esc(j.prob)}%</output></div>
-          <span class="hint">Qantas doesn't publish odds. Try a few values and see if the verdict changes.</span>
+          <span class="hint">The airline doesn't publish odds. Try a few values and see if the verdict changes.</span>
         </label>
       </div></fieldset>
     </details>
@@ -124,11 +124,11 @@ function verdictHtml(j, r) {
   lines.push(`<p class="big"><b>Best option is ${b.name}.</b> It costs ${b.points ? pts(b.points) + ' points and ' : ''}${aud(b.cash)} cash${b.points ? `, gets ${cpp(b.cpp)} per point` : ''}, and gains you ${aud(b.gain)}.</p>`);
   const runner = r.ranked[1];
   if (runner) lines.push(`<p>Next best is ${runner.name}, which gains ${aud(runner.gain)} (${aud(b.gain - runner.gain)} less).</p>`);
-  if (b.available === 'unknown') lines.push(`<p>${chip('Check seats', 'warn')} Confirm there are ${T} seats on the <a href="${FINDER_URL}" target="_blank" rel="noopener">Flight Reward finder</a> before you rely on this.</p>`);
+  if (b.available === 'unknown') lines.push(`<p>${chip('Check seats', 'warn')} Confirm there are ${T} seats on the <a href="${FINDER_URL}" target="_blank" rel="noopener">Reward seat finder</a> before you rely on this.</p>`);
 
   const c = r.compare, upg = r.strategies.find((s) => s.key === 'econUpgrade');
   if (c && upg && upg.eligible !== false) {
-    lines.push(`<p>Compared with the Business Classic Reward, the upgrade route uses ${pts(c.savedPts)} fewer points and costs ${aud(c.extraCash)} more cash. That is the same as buying points at ${cpp(c.impliedCpp)} each, and you value them at ${f}¢. ${breakevenText(c)}</p>`);
+    lines.push(`<p>Compared with the Business reward, the upgrade route uses ${pts(c.savedPts)} fewer points and costs ${aud(c.extraCash)} more cash. That is the same as buying points at ${cpp(c.impliedCpp)} each, and you value them at ${f}¢. ${breakevenText(c)}</p>`);
   }
   return lines.join('');
 }
@@ -137,9 +137,9 @@ function breakevenText(c) {
   if (!isFinite(p)) return '';
   const winsAt = (P) => c.upgradeBetterAbove ? P > p : P < p;
   const w0 = winsAt(0), w1 = winsAt(1);
-  if (w0 && w1) return 'It beats the Business Classic Reward at any odds.';
-  if (!w0 && !w1) return 'It can\'t beat the Business Classic Reward, even if the upgrade is certain to clear.';
-  if (w1) return `It beats the Business Classic Reward only if the chance of the upgrade clearing is above ${pct(p)}.`;
+  if (w0 && w1) return 'It beats the Business reward at any odds.';
+  if (!w0 && !w1) return 'It can\'t beat the Business reward, even if the upgrade is certain to clear.';
+  if (w1) return `It beats the Business reward only if the chance of the upgrade clearing is above ${pct(p)}.`;
   return `It wins only when the chance is below ${pct(p)}, because the better result is flying Economy and keeping your points.`;
 }
 
@@ -148,7 +148,7 @@ function flagsHtml(j, r) {
   if (r.unknownAirports.length) out.push(chip(`Unknown airport ${r.unknownAirports.join(', ')}. Set the zone manually.`, 'bad'));
   if (isFinite(r.miles)) out.push(chip(`${r.codes.join('-')} is about ${pts(r.miles)} miles, Zone ${r.zone}${j.zone ? ' (set manually)' : ''}`));
   else if (isFinite(r.zone)) out.push(chip(`Zone ${r.zone} (set manually)`));
-  if (r.nearBoundary && !j.zone) out.push(chip('Close to a zone limit. Check the points price on Qantas.', 'warn'));
+  if (r.nearBoundary && !j.zone) out.push(chip('Close to a zone limit. Check the points price with the airline.', 'warn'));
   if (j.econClass || r.strategies.some((s) => s.key === 'econUpgrade')) {
     if (r.fareClass === 'excluded') out.push(chip(`Class ${esc(j.econClass.toUpperCase())} can't be upgraded`, 'bad'));
     else if (r.fareClass === 'unknown') out.push(chip('Enter the Economy fare class to confirm upgrade eligibility', 'warn'));
@@ -168,7 +168,7 @@ function flagsHtml(j, r) {
     out.push(chip(opens(d.outboundOpens, 'Outbound') + (d.returnOpens ? ', ' + opens(d.returnOpens, 'return') : '')));
   }
   const status = state.setup.status || 'bronze';
-  if (r.strategies.some((s) => s.key.endsWith('Upgrade'))) out.push(chip(`At your status, Qantas decides upgrades up to ${STATUS_WINDOW[status]} before departure`));
+  if (r.strategies.some((s) => s.key.endsWith('Upgrade'))) out.push(chip(`At your status, The airline decides upgrades up to ${STATUS_WINDOW[status]} before departure`));
   return out.join(' ');
 }
 
@@ -302,7 +302,7 @@ $('#btn-csv').addEventListener('click', () => {
   }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
-  a.download = 'qff-journeys.csv'; a.click(); URL.revokeObjectURL(a.href);
+  a.download = 'journeys.csv'; a.click(); URL.revokeObjectURL(a.href);
 });
 
 renderAll();

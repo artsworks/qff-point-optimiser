@@ -2,13 +2,13 @@
 /* Pure calculation engine — no DOM. Loaded by index.html and by node tests. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.QFF = factory();
+  else root.PTS = factory();
 })(typeof self !== 'undefined' ? self : this, function () {
 
-  // Qantas tables, bookings/requests from 5 Aug 2025. Points per passenger, ONE-WAY.
+  // Airline reward tables, bookings/requests from 5 Aug 2025. Points per passenger, ONE-WAY.
   const ZONE_MAX_MILES = [600, 1200, 2400, 3600, 4800, 5800, 7000, 8400, 9600, 15000];
   // [economy, premium, business, first]
-  const QF_REWARD = [
+  const AIRLINE_REWARD = [
     [9200, 14500, 19300, 29000], [13800, 21600, 29000, 43600], [20700, 32600, 43600, 65300],
     [23300, 50600, 68400, 102600], [29000, 61600, 82100, 123100], [36200, 73800, 98400, 147700],
     [43200, 85300, 113900, 170800], [48200, 97600, 130100, 195400], [58900, 113900, 151800, 227800],
@@ -20,7 +20,7 @@
     [51800, 98200, 125400, 179800], [57800, 112200, 143000, 205000], [70700, 130800, 167000, 239200],
     [76100, 143500, 182900, 261600],
   ];
-  // International Classic Upgrade to Business, per passenger per flight (one-way).
+  // International points upgrade to Business, per passenger per flight (one-way).
   // [fromEconomyReward, economy, flexibleEconomy, fromPEReward, discountPE, premiumEconomy, flexiblePE]
   const UPG_TO_BUSINESS = [
     [14300, 12000, 6500, 8400, 6500, 5900, 5400], [21600, 17900, 10100, 12500, 10100, 8900, 7700],
@@ -31,7 +31,7 @@
   ];
   const UPG_COL = { rewardEcon: 0, econ: 1, flexEcon: 2, rewardPE: 3, discPE: 4, pe: 5, flexPE: 6 };
 
-  // International economy booking classes for Classic Upgrade eligibility.
+  // International economy booking classes for points upgrade eligibility.
   const ECON_UPGRADE_CLASSES = 'GKLMSV';
   const FLEX_ECON_CLASSES = 'BHY';
 
@@ -77,7 +77,7 @@
   }
 
   function rewardPts(zone, airline) {
-    const row = (airline === 'partner' ? PARTNER_REWARD : QF_REWARD)[zone - 1];
+    const row = (airline === 'partner' ? PARTNER_REWARD : AIRLINE_REWARD)[zone - 1];
     return row ? { economy: row[0], premium: row[1], business: row[2], first: row[3] } : null;
   }
   function upgradePts(zone, from) {
@@ -99,7 +99,7 @@
 
   /**
    * setup: { balance, travellers, futureCpp (¢), bizWeight (0..1) }
-   * j: { route, airline ('qantas'|'partner'), oneWay, zone (override, optional),
+   * j: { route, airline ('main'|'partner'), oneWay, zone (override, optional),
    *      econCash, upgEconCash, econClass, peCash, peFareType, bizCash,
    *      taxEcon, taxPremium, bizSeats, econSeats, prob (0..100) }
    * All cash amounts are totals for the whole party for the whole trip.
@@ -135,11 +135,11 @@
     };
 
     if (pts) {
-      if (E) add({ key: 'econReward', name: 'Economy Classic Reward', points: pts.economy * T * S,
+      if (E) add({ key: 'econReward', name: 'Economy reward', points: pts.economy * T * S,
         cash: tE, value: E, cabin: 'Economy (confirmed)', available: avail(econSeats) });
-      if (PE) add({ key: 'peReward', name: 'Premium Economy Classic Reward', points: pts.premium * T * S,
+      if (PE) add({ key: 'peReward', name: 'Premium Economy reward', points: pts.premium * T * S,
         cash: tP, value: PE, cabin: 'Premium Economy (confirmed)', available: 'unknown' });
-      if (B) add({ key: 'bizReward', name: 'Business Classic Reward', points: pts.business * T * S,
+      if (B) add({ key: 'bizReward', name: 'Business reward', points: pts.business * T * S,
         cash: tP, value: VB, cabin: 'Business (confirmed)', available: avail(bizSeats) });
       if (B && E && S === 2) add({ key: 'mixedReward', name: 'Business reward one way, Economy reward the other',
         points: (pts.business + pts.economy) * T, cash: (tP + tE) / 2, value: (VB + E) / 2,
@@ -147,7 +147,7 @@
         available: avail(bizSeats === null || econSeats === null ? null : Math.min(bizSeats, econSeats)) });
     }
 
-    // Paid Economy + Classic Upgrade to Business
+    // Paid Economy + points upgrade to Business
     const cls = fareClassType(j.econClass);
     if (B && Eu && isFinite(zone)) {
       const from = cls === 'flexEcon' ? 'flexEcon' : 'econ';
@@ -158,7 +158,7 @@
         cabin: `Business if it clears (${Math.round(P * 100)}%), else Economy`,
         eligible: cls !== 'excluded', fareClass: cls, prob: P, upgradeFrom: from, perSector: U / T / S });
     }
-    // Paid Premium Economy + Classic Upgrade to Business
+    // Paid Premium Economy + points upgrade to Business
     if (B && PE && isFinite(zone)) {
       const from = ['discPE', 'pe', 'flexPE'].includes(j.peFareType) ? j.peFareType : 'pe';
       const U = upgradePts(zone, from) * T * S;
@@ -261,7 +261,7 @@
   /** Three headline options for the simple page. Upgrade figures assume it clears. */
   function simpleCompare({ balance, travellers, oneWay, route, econCash, bizCash, tax, pointCents = 1 }) {
     const zone = zoneFor(routeMiles(route).miles);
-    const r = rewardPts(zone, 'qantas');
+    const r = rewardPts(zone, 'main');
     const n = num(travellers) * (oneWay ? 1 : 2);
     const E = num(econCash), B = num(bizCash), t = num(tax);
     const mk = (key, name, points, cash, value) => ({
@@ -282,7 +282,7 @@
   }
 
   return {
-    ZONE_MAX_MILES, QF_REWARD, PARTNER_REWARD, UPG_TO_BUSINESS, AIRPORTS, BOOKING_WINDOW_DAYS,
+    ZONE_MAX_MILES, AIRLINE_REWARD, PARTNER_REWARD, UPG_TO_BUSINESS, AIRPORTS, BOOKING_WINDOW_DAYS,
     VIC_HOLIDAYS, PREFERRED, JP_BUSY, JP_SEASONS,
     greatCircleMiles, parseRoute, routeMiles, zoneFor, nearZoneBoundary, rewardPts, upgradePts,
     fareClassType, evaluate, checkDates, addDays, simpleCompare,

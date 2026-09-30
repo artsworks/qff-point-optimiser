@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const Q = require('../calc.js');
 
 const setup = { balance: 400000, travellers: 2, futureCpp: 0, bizWeight: 1 };
-const base = { route: 'MEL-NRT', airline: 'qantas', econCash: 1200, bizCash: 5000,
+const base = { route: 'MEL-NRT', airline: 'main', econCash: 1200, bizCash: 5000,
   econClass: 'L', taxEcon: 0, taxPremium: 0, prob: 100 };
 const get = (r, k) => r.strategies.find((s) => s.key === k);
 const close = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} ≉ ${b}`);
