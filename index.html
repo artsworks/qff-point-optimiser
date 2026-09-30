@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QFF Points Optimiser — MEL → Japan</title>
+<meta name="description" content="Compare Qantas Frequent Flyer redemption strategies: Classic Rewards vs paid Economy + Classic Upgrade, cents-per-point, expected value and date checking.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <h1>QFF Points Optimiser</h1>
+  <p class="sub">Best value per Qantas Point for a Melbourne → Japan trip. Zone 6 rewards (4,801–5,800 mi), post Aug 2025 table. All inputs save automatically in this browser.</p>
+</header>
+
+<main>
+
+<!-- ── Assumptions ─────────────────────────────────────────────── -->
+<section class="card">
+  <h2>Assumptions</h2>
+  <div class="grid inputs">
+    <label>QFF balance (pts)
+      <input type="number" id="in-balance" min="0" step="1000" value="400000">
+    </label>
+    <label>Travellers
+      <input type="number" id="in-travellers" min="1" max="9" step="1" value="2">
+    </label>
+    <label>Sectors per person <span class="hint">(return = 2)</span>
+      <input type="number" id="in-sectors" min="1" max="4" step="1" value="2">
+    </label>
+    <label>Reward taxes/fees <span class="hint">($ total, party)</span>
+      <input type="number" id="in-taxes" min="0" step="10" value="600">
+    </label>
+    <label>Value of leftover points <span class="hint">(¢/pt future use)</span>
+      <input type="number" id="in-futurecpp" min="0" step="0.1" value="1.2">
+    </label>
+  </div>
+</section>
+
+<!-- ── Cash fares ──────────────────────────────────────────────── -->
+<section class="card">
+  <h2>Comparable cash fares <span class="hint">— real fares for the same flights/dates, total for the party, return</span></h2>
+  <div class="grid inputs">
+    <label>Economy return <span class="hint">($ total)</span>
+      <input type="number" id="in-econcash" min="0" step="50" value="2400">
+    </label>
+    <label>Premium Economy return <span class="hint">($ total, optional)</span>
+      <input type="number" id="in-premcash" min="0" step="50" value="0">
+    </label>
+    <label>Business return <span class="hint">($ total)</span>
+      <input type="number" id="in-bizcash" min="0" step="50" value="10000">
+    </label>
+  </div>
+  <p class="note">Use realistic sale fares on the <em>same</em> flights — not fully-flexible fares — or the CPP comparison flatters the reward.</p>
+</section>
+
+<!-- ── Strategy table ──────────────────────────────────────────── -->
+<section class="card">
+  <h2>Strategy comparison</h2>
+  <div class="tablewrap">
+    <table id="strategy-table">
+      <thead>
+        <tr>
+          <th>Strategy</th><th class="num">Points</th><th class="num">Cash</th>
+          <th class="num">Left over</th><th>Cabin</th><th class="num">Net value</th>
+          <th class="num">¢/point</th><th class="num">Score*</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <p class="note">*Score = net trip value + leftover points × your assumed ¢/pt. Lets an Economy redemption (which preserves points) be compared fairly with Business.</p>
+</section>
+
+<!-- ── Upgrade analysis ────────────────────────────────────────── -->
+<section class="card">
+  <h2>Paid Economy + Classic Upgrade — expected value</h2>
+  <div class="grid inputs">
+    <label>Upgrade path
+      <select id="in-upgradetype">
+        <option value="paid">Paid Economy — 78,500 pp/sector</option>
+        <option value="flexible">Flexible Economy — 43,100 pp/sector</option>
+        <option value="reward">From Economy Reward — 83,600 pp/sector</option>
+        <option value="custom">Custom pp/sector</option>
+      </select>
+    </label>
+    <label>Custom pts pp/sector
+      <input type="number" id="in-upgradecustom" min="0" step="100" value="78500" disabled>
+    </label>
+    <label>Fare class
+      <select id="in-fareclass">
+        <option value="eligible">Upgrade-eligible Economy</option>
+        <option value="excluded">Sale E / N / O / Q — not eligible</option>
+        <option value="unknown">Unknown — check before booking</option>
+      </select>
+    </label>
+    <label class="wide">P — probability the upgrade clears for the whole party
+      <div class="sliderrow">
+        <input type="range" id="in-prob" min="0" max="100" step="1" value="50">
+        <output id="out-prob">50%</output>
+      </div>
+    </label>
+  </div>
+  <div id="upgrade-results" class="results"></div>
+  <p class="note">Qantas does not publish upgrade-clear rates — treat P as a variable, not a guess. International upgrades are only considered inside 24h of departure for Bronze–Gold (3d Platinum, 7d Platinum One), and a Business seat for sale does <em>not</em> mean an upgrade will clear. Points are only deducted if the upgrade confirms.</p>
+</section>
+
+<!-- ── Date checker ────────────────────────────────────────────── -->
+<section class="card">
+  <h2>Date checker — 2027</h2>
+  <div class="grid inputs">
+    <label>Depart <input type="date" id="in-depart"></label>
+    <label>Return <input type="date" id="in-return"></label>
+  </div>
+  <div id="date-results" class="results"></div>
+  <details>
+    <summary>Reference windows</summary>
+    <div class="tablewrap">
+      <table class="mini">
+        <thead><tr><th>VIC school holidays (avoid)</th><th>Preferred windows</th><th>Japan busy periods (approx.)</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>26 Mar – 11 Apr · 26 Jun – 11 Jul · 18 Sep – 3 Oct · 18 Dec → late Jan</td>
+            <td>12 Apr – 25 Jun · 12 Jul – 17 Sep · 4 Oct – 17 Dec</td>
+            <td>Golden Week ~29 Apr–6 May · Obon ~13–16 Aug · Silver Week ~18–23 Sep · New Year ~28 Dec–4 Jan</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Japanese holiday dates are approximate (based on the 2027 calendar) — verify before booking. Golden Week / Obon mean high fares and crowded attractions, independent of VIC holidays.</p>
+  </details>
+</section>
+
+<!-- ── Candidate flights ───────────────────────────────────────── -->
+<section class="card">
+  <h2>Candidate flights</h2>
+  <p class="note">One row per real itinerary you find. Values save automatically. CPP uses the reward taxes above plus the cash fares you enter <em>per row</em>.</p>
+  <div class="tablewrap">
+    <table id="candidates">
+      <thead>
+        <tr>
+          <th>Label / dates</th><th>Route</th>
+          <th class="num">Econ $</th><th class="num">Biz $</th>
+          <th>Fare class</th><th class="num">Biz reward seats</th>
+          <th>Computed</th><th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div class="btnrow">
+    <button id="btn-addrow" type="button">+ Add flight</button>
+    <button id="btn-csv" type="button">Export CSV</button>
+    <button id="btn-clear" type="button" class="danger">Clear all</button>
+  </div>
+</section>
+
+<!-- ── Decision guide ──────────────────────────────────────────── -->
+<section class="card">
+  <h2>Decision guide</h2>
+  <div class="grid inputs">
+    <label>Business reward seats found
+      <input type="number" id="in-bizseats" min="0" max="9" step="1" value="0">
+    </label>
+    <label>Economy reward seats found
+      <input type="number" id="in-econseats" min="0" max="9" step="1" value="0">
+    </label>
+  </div>
+  <ol id="decision-list" class="results"></ol>
+</section>
+
+<!-- ── Methodology ─────────────────────────────────────────────── -->
+<section class="card">
+  <h2>Methodology &amp; sources</h2>
+  <ul class="refs">
+    <li><b>CPP</b> = (comparable cash fare − taxes/fees) ÷ QFF points used, in cents.</li>
+    <li><b>Upgrade EV</b> = P·Business + (1−P)·Economy − Economy cash paid. Points count as spent only if the upgrade confirms.</li>
+    <li><b>Breakeven P*</b> solves upgrade-EV (incl. leftover-point value) = Business-Reward value.</li>
+    <li>Zone 6 Classic Rewards pp return: Econ 72,400 · PremEcon 147,600 · Business 196,800 · First 295,400. Bookable ~353 days ahead, capacity-controlled, released in batches.</li>
+    <li>Upgrade: 78,500 × 2 pax × 2 sectors = <b>314,000</b>; Business Reward for 2 = <b>393,600</b>; saving = <b>79,600 pts</b>.</li>
+  </ul>
+  <ul class="refs links">
+    <li><a href="https://www.qantas.com/en-au/frequent-flyer/use-points/classic-flight-rewards/tables">Classic Flight Reward tables</a></li>
+    <li><a href="https://www.qantas.com/en-au/frequent-flyer/use-points/classic-upgrade-rewards/tables">Classic Upgrade Reward tables</a></li>
+    <li><a href="https://www.qantas.com/en-au/manage-booking/upgrade">Upgrade eligibility (E/N/O/Q excluded)</a></li>
+    <li><a href="https://www.vic.gov.au/school-term-dates-and-holidays-victoria">VIC school term dates</a></li>
+  </ul>
+</section>
+
+</main>
+<footer>Static page · no data leaves your browser · not affiliated with Qantas</footer>
+<script src="app.js"></script>
+</body>
+</html>
