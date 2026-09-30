@@ -114,3 +114,15 @@ test('date checks: VIC holidays, Golden Week, preferred window, booking opens', 
   assert.deepEqual(b.jp, ['Golden Week']);
   assert.equal(b.preferred, null);
 });
+
+test('simpleCompare: two people return MEL-NRT', () => {
+  const r = Q.simpleCompare({ balance: 400000, travellers: 2, oneWay: false, route: 'MEL-NRT',
+    econCash: 2400, bizCash: 10000, tax: 700 });
+  const get2 = (k) => r.options.find((o) => o.key === k);
+  assert.equal(r.zone, 6);
+  assert.equal(get2('bizReward').points, 393600);
+  assert.equal(get2('econReward').points, 144800);
+  assert.equal(get2('econUpgrade').points, 314000);
+  assert.equal(get2('bizReward').left, 6400);
+  assert.equal(r.best.key, 'bizReward');
+});

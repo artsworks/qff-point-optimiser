@@ -4,9 +4,13 @@ A static page, hosted on GitHub Pages, that compares ways to spend Qantas Freque
 
 Live site: https://artsworks.github.io/qff-point-optimiser/
 
-## What it does
+## Simple page
 
-You add one journey for each itinerary you find. A journey has dates, a route, cash fares for the same flights, and seat availability from the [Qantas Flight Reward finder](https://flightrewardfinder.qantas.com/). For each journey the page:
+The main page asks for your points, travellers, flight, and the Economy and Business cash prices for your dates. It shows three options (Business reward, Economy reward, paid Economy with an upgrade) with points, cash, cents per point and points left, and names the best one.
+
+## Advanced page
+
+On `advanced.html` you add one journey for each itinerary you find. A journey has dates, a route, cash fares for the same flights, and seat availability from the [Qantas Flight Reward finder](https://flightrewardfinder.qantas.com/). For each journey the page:
 
 - Estimates the miles from the route (for example `MEL-NRT`, `MEL-SYD-HND` or `MEL-NRT-FUK`) and picks the zone. It warns when a route is close to a zone limit, and you can set the zone yourself.
 - Uses the Qantas table, or the more expensive partner table for airlines such as Japan Airlines.

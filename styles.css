@@ -75,3 +75,15 @@ tr.dim td{opacity:.5}
 .rules b{color:var(--text)}
 #ranking a{color:var(--text)}
 #ranking tbody tr{cursor:pointer}
+.tabs{display:flex;gap:6px;margin-bottom:16px}
+.tabs a{color:var(--muted);text-decoration:none;padding:6px 14px;border:1px solid var(--line);border-radius:999px;font-size:13.5px}
+.tabs a[aria-current=page]{color:#fff;background:var(--accent);border-color:var(--accent)}
+.answer .big{font-size:16.5px;margin:0 0 4px}
+.options{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-top:14px}
+.opt{border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:6px;font-size:14px}
+.opt.best{border-color:var(--good);box-shadow:0 0 0 1px var(--good) inset}
+.opt h3{margin:0 0 4px;font-size:15px}
+.opt-pts{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted);font-size:13px}
+.bad-text{color:var(--bad);font-size:13px}
+a{color:#7fb0ff}

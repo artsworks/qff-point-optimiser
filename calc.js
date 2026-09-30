@@ -258,10 +258,33 @@
     };
   }
 
+  /** Three headline options for the simple page. Upgrade figures assume it clears. */
+  function simpleCompare({ balance, travellers, oneWay, route, econCash, bizCash, tax, pointCents = 1 }) {
+    const zone = zoneFor(routeMiles(route).miles);
+    const r = rewardPts(zone, 'qantas');
+    const n = num(travellers) * (oneWay ? 1 : 2);
+    const E = num(econCash), B = num(bizCash), t = num(tax);
+    const mk = (key, name, points, cash, value) => ({
+      key, name, points, cash, value,
+      cpp: points ? ((value - cash) / points) * 100 : NaN,
+      left: num(balance) - points,
+      affordable: num(balance) >= points,
+      gain: value - cash - (points * pointCents) / 100,
+    });
+    const options = [
+      mk('bizReward', 'Business reward', r.business * n, t, B),
+      mk('econReward', 'Economy reward', r.economy * n, t, E),
+      mk('econUpgrade', 'Paid Economy, then upgrade', upgradePts(zone, 'econ') * n, E, B),
+    ];
+    const ok = options.filter((o) => o.affordable && o.value > 0);
+    const best = ok.length ? ok.reduce((a, b) => (b.gain > a.gain ? b : a)) : null;
+    return { zone, options, best };
+  }
+
   return {
     ZONE_MAX_MILES, QF_REWARD, PARTNER_REWARD, UPG_TO_BUSINESS, AIRPORTS, BOOKING_WINDOW_DAYS,
     VIC_HOLIDAYS, PREFERRED, JP_BUSY, JP_SEASONS,
     greatCircleMiles, parseRoute, routeMiles, zoneFor, nearZoneBoundary, rewardPts, upgradePts,
-    fareClassType, evaluate, checkDates, addDays,
+    fareClassType, evaluate, checkDates, addDays, simpleCompare,
   };
 });
