@@ -14,10 +14,10 @@ const newJourney = (over = {}) => ({
   ...over,
 });
 const DEFAULT_STATE = () => ({
-  setup: { balance: 400000, travellers: 2, status: 'bronze', futureCpp: 1, bizWeight: 100 },
+  setup: { balance: 100000, travellers: 1, status: 'bronze', futureCpp: 1, bizWeight: 100 },
   journeys: [newJourney({
-    label: 'Example, mid-May 2027 (edit me)', depart: '2027-05-10', ret: '2027-05-24',
-    econCash: 2400, bizCash: 10000, taxEcon: 500, taxPremium: 700,
+    label: 'Example journey (edit me)', depart: '2027-05-10', ret: '2027-05-24',
+    econCash: 1200, bizCash: 5000, taxEcon: 250, taxPremium: 350,
   })],
 });
 

@@ -1,7 +1,7 @@
 (() => {
   const Q = window.PTS;
   const LS_KEY = 'points-simple-v1';
-  const DEFAULTS = { balance: 400000, travellers: 2, oneway: 'false', route: 'MEL-NRT', econ: 2400, biz: 10000, tax: 700 };
+  const DEFAULTS = { balance: 100000, travellers: 1, oneway: 'false', route: 'MEL-NRT', econ: 1200, biz: 5000, tax: 350 };
   const $ = (s) => document.querySelector(s);
   const pts = (n) => Math.round(n).toLocaleString('en-AU');
   const aud = (n) => '$' + Math.round(n).toLocaleString('en-AU');

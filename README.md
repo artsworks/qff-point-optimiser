@@ -1,6 +1,6 @@
 # Frequent flyer points optimiser
 
-A static page, hosted on GitHub Pages, that compares ways to spend frequent flyer points on a trip. It was built for a Melbourne to Japan trip for two people with 400,000 points. It uses the airline's reward tables for bookings made from 5 August 2025, zones 1 to 10. Direct Melbourne to Japan flights are Zone 6 (4,801 to 5,800 miles).
+A static page, hosted on GitHub Pages, that compares ways to spend frequent flyer points on a trip. It uses the airline's reward tables for bookings made from 5 August 2025, zones 1 to 10. Direct Melbourne to Japan flights are Zone 6 (4,801 to 5,800 miles).
 
 Live site: https://artsworks.github.io/qff-point-optimiser/
 
